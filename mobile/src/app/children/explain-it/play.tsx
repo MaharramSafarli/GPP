@@ -2,29 +2,35 @@ import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
-import { EXPLAIN_IT_WORDS, type WordCard } from '@/data/explain-it-words';
+import { Screen } from '@/components/screen';
+import { CATEGORIES, EXPLAIN_IT_WORDS, type WordCard } from '@/data/explain-it-words';
 import { shuffle } from '@/games/explain-it/shuffle';
-import { colors } from '@/theme';
+import { colors, fonts } from '@/theme';
 
 type Outcome = 'correct' | 'skip' | 'foul';
 type Result = { card: WordCard; outcome: Outcome };
 
+const categoryOf = (card: WordCard) => CATEGORIES.find((c) => c.id === card.category)!;
+
 export default function ExplainItPlayScreen() {
   useKeepAwake();
-  const params = useLocalSearchParams<{ seconds?: string }>();
+  const params = useLocalSearchParams<{ seconds?: string; categories?: string }>();
   const roundSeconds = Number(params.seconds) || 60;
+  const chosen = params.categories?.split(',') ?? CATEGORIES.map((c) => c.id);
+  const pool = EXPLAIN_IT_WORDS.filter((w) => chosen.includes(w.category));
 
-  const [deck, setDeck] = useState(() => shuffle(EXPLAIN_IT_WORDS));
+  const [deck, setDeck] = useState(() => shuffle(pool));
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState<Result[]>([]);
   const [endsAt, setEndsAt] = useState(() => Date.now() + roundSeconds * 1000);
   const [now, setNow] = useState(() => Date.now());
 
   const remaining = Math.max(0, Math.ceil((endsAt - now) / 1000));
-  const finished = remaining === 0 || index >= deck.length;
+  const outOfWords = index >= deck.length;
+  const finished = remaining === 0 || outOfWords;
 
   useEffect(() => {
     if (finished) return;
@@ -46,7 +52,7 @@ export default function ExplainItPlayScreen() {
   };
 
   const playAgain = () => {
-    setDeck(shuffle(EXPLAIN_IT_WORDS));
+    setDeck(shuffle(pool));
     setIndex(0);
     setResults([]);
     const start = Date.now();
@@ -55,53 +61,69 @@ export default function ExplainItPlayScreen() {
   };
 
   if (finished) {
-    return <ResultsView results={results} onPlayAgain={playAgain} />;
+    return <ResultsView results={results} outOfWords={outOfWords} onPlayAgain={playAgain} />;
   }
 
   const card = deck[index];
+  const category = categoryOf(card);
   const lowTime = remaining <= 10;
+  const score = results.filter((r) => r.outcome === 'correct').length;
 
   return (
-    <View style={styles.screen}>
+    <Screen scroll={false}>
       <View style={styles.topBar}>
-        <Text style={[styles.timer, lowTime && { color: colors.foul }]}>⏱ {remaining}s</Text>
-        <Text style={styles.score}>
-          ⭐ {results.filter((r) => r.outcome === 'correct').length}
-        </Text>
+        <View style={[styles.pill, lowTime && { backgroundColor: colors.foul }]}>
+          <Text style={[styles.pillText, lowTime && { color: '#fff' }]}>⏱️ {remaining}</Text>
+        </View>
+        <View style={styles.pill}>
+          <Text style={styles.pillText}>⭐ {score}</Text>
+        </View>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.word} adjustsFontSizeToFit numberOfLines={2}>
+      <View style={[styles.card, { borderColor: category.color }]}>
+        <View style={[styles.tag, { backgroundColor: category.color }]}>
+          <Text style={styles.tagText}>
+            {category.emoji} {category.title}
+          </Text>
+        </View>
+        <Text
+          style={[styles.word, { color: category.color }]}
+          adjustsFontSizeToFit
+          numberOfLines={2}>
           {card.word}
         </Text>
-        <View style={styles.divider} />
-        <Text style={styles.dontSay}>Don&apos;t say:</Text>
-        {card.forbidden.map((w) => (
-          <Text key={w} style={styles.forbidden}>
-            {w}
-          </Text>
-        ))}
+        <View style={styles.forbiddenBox}>
+          <Text style={styles.dontSay}>🚫 Demək olmaz</Text>
+          {card.forbidden.map((w) => (
+            <Text key={w} style={styles.forbidden}>
+              {w}
+            </Text>
+          ))}
+        </View>
       </View>
 
       <View style={styles.actions}>
-        <BigButton label="✓ Correct" color={colors.correct} onPress={() => answer('correct')} />
+        <BigButton label="✓ Düzdür" color={colors.correct} onPress={() => answer('correct')} />
         <View style={styles.row}>
-          <BigButton label="Skip" color={colors.skip} onPress={() => answer('skip')} flex />
-          <BigButton
-            label="Said it! ✗"
-            color={colors.foul}
-            onPress={() => answer('foul')}
-            flex
-          />
+          <BigButton label="Keç →" color={colors.skip} onPress={() => answer('skip')} flex />
+          <BigButton label="Qadağan ✗" color={colors.foul} onPress={() => answer('foul')} flex />
         </View>
       </View>
-    </View>
+    </Screen>
   );
 }
 
-function ResultsView({ results, onPlayAgain }: { results: Result[]; onPlayAgain: () => void }) {
+function ResultsView({
+  results,
+  outOfWords,
+  onPlayAgain,
+}: {
+  results: Result[];
+  outOfWords: boolean;
+  onPlayAgain: () => void;
+}) {
   const count = (o: Outcome) => results.filter((r) => r.outcome === o).length;
-  const label: Record<Outcome, string> = { correct: '✓', skip: '→', foul: '✗' };
+  const mark: Record<Outcome, string> = { correct: '✓', skip: '→', foul: '✗' };
   const color: Record<Outcome, string> = {
     correct: colors.correct,
     skip: colors.skip,
@@ -109,33 +131,37 @@ function ResultsView({ results, onPlayAgain }: { results: Result[]; onPlayAgain:
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.results}>
+    <Screen>
       <Text style={styles.resultsEmoji}>🎉</Text>
-      <Text style={styles.resultsTitle}>Time&apos;s up!</Text>
-      <Text style={styles.bigScore}>{count('correct')}</Text>
-      <Text style={styles.bigScoreLabel}>correct words</Text>
+      <Text style={styles.resultsTitle}>{outOfWords ? 'Sözlər bitdi!' : 'Vaxt bitdi!'}</Text>
+      <View style={styles.scoreBubble}>
+        <Text style={styles.bigScore}>{count('correct')}</Text>
+        <Text style={styles.bigScoreLabel}>düzgün söz</Text>
+      </View>
 
-      <View style={styles.statsRow}>
-        <Stat label="Skipped" value={count('skip')} color={colors.skip} />
-        <Stat label="Forbidden" value={count('foul')} color={colors.foul} />
+      <View style={styles.row}>
+        <Stat label="Keçildi" value={count('skip')} color={colors.skip} />
+        <Stat label="Qadağan" value={count('foul')} color={colors.foul} />
       </View>
 
       {results.length > 0 && (
         <View style={styles.list}>
           {results.map((r, i) => (
             <View key={i} style={styles.listRow}>
-              <Text style={[styles.listMark, { color: color[r.outcome] }]}>
-                {label[r.outcome]}
-              </Text>
+              <Text style={[styles.listMark, { color: color[r.outcome] }]}>{mark[r.outcome]}</Text>
               <Text style={styles.listWord}>{r.card.word}</Text>
             </View>
           ))}
         </View>
       )}
 
-      <BigButton label="Play again" color={colors.primary} onPress={onPlayAgain} />
-      <BigButton label="Back to games" color={colors.muted} onPress={() => router.dismissTo('/children')} />
-    </ScrollView>
+      <BigButton label="Yenidən oyna 🔁" color={colors.primary} onPress={onPlayAgain} />
+      <BigButton
+        label="Oyunlara qayıt"
+        color={colors.muted}
+        onPress={() => router.dismissTo('/children')}
+      />
+    </Screen>
   );
 }
 
@@ -149,48 +175,83 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 16, gap: 16 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  timer: { fontSize: 28, fontWeight: '800', color: colors.text, fontVariant: ['tabular-nums'] },
-  score: { fontSize: 28, fontWeight: '800', color: colors.text },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between' },
+  pill: {
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 4,
+    minWidth: 96,
+    alignItems: 'center',
+  },
+  pillText: {
+    fontSize: 28,
+    fontFamily: fonts.display,
+    color: colors.text,
+    fontVariant: ['tabular-nums'],
+  },
   card: {
     flex: 1,
     backgroundColor: colors.card,
-    borderRadius: 28,
-    padding: 24,
+    borderRadius: 32,
+    borderWidth: 5,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    shadowColor: '#2D2A6E',
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  tag: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 4 },
+  tagText: { fontSize: 15, fontFamily: fonts.bold, color: '#fff' },
+  word: { fontSize: 50, fontFamily: fonts.display, textAlign: 'center', lineHeight: 62 },
+  forbiddenBox: {
+    alignSelf: 'stretch',
+    backgroundColor: '#FFF0F3',
+    borderRadius: 22,
+    paddingVertical: 12,
+    alignItems: 'center',
+    gap: 2,
+  },
+  dontSay: { fontSize: 16, fontFamily: fonts.bold, color: colors.foul, marginBottom: 4 },
+  forbidden: { fontSize: 22, fontFamily: fonts.heading, color: colors.text, lineHeight: 30 },
+  actions: { gap: 12 },
+  row: { flexDirection: 'row', gap: 12 },
+  resultsEmoji: { fontSize: 64, textAlign: 'center' },
+  resultsTitle: {
+    fontSize: 38,
+    fontFamily: fonts.display,
+    color: colors.text,
+    textAlign: 'center',
+    lineHeight: 48,
+  },
+  scoreBubble: {
+    alignSelf: 'center',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: colors.card,
+    borderWidth: 6,
+    borderColor: colors.correct,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
-  word: { fontSize: 48, fontWeight: '900', color: colors.primary, textAlign: 'center' },
-  divider: { height: 3, width: '60%', backgroundColor: colors.background, marginVertical: 12 },
-  dontSay: { fontSize: 16, fontWeight: '700', color: colors.foul, textTransform: 'uppercase' },
-  forbidden: { fontSize: 24, fontWeight: '700', color: colors.text },
-  actions: { gap: 12, paddingBottom: 8 },
-  row: { flexDirection: 'row', gap: 12 },
-  results: { padding: 16, gap: 16, alignItems: 'stretch' },
-  resultsEmoji: { fontSize: 64, textAlign: 'center' },
-  resultsTitle: { fontSize: 32, fontWeight: '900', color: colors.text, textAlign: 'center' },
-  bigScore: { fontSize: 80, fontWeight: '900', color: colors.correct, textAlign: 'center' },
-  bigScoreLabel: { fontSize: 18, color: colors.muted, textAlign: 'center', marginTop: -16 },
-  statsRow: { flexDirection: 'row', gap: 12 },
+  bigScore: { fontSize: 72, fontFamily: fonts.display, color: colors.correct, lineHeight: 84 },
+  bigScoreLabel: { fontSize: 16, fontFamily: fonts.bold, color: colors.muted, marginTop: -10 },
   stat: {
     flex: 1,
     backgroundColor: colors.card,
-    borderRadius: 16,
-    borderWidth: 3,
-    padding: 12,
+    borderRadius: 20,
+    borderWidth: 4,
+    padding: 10,
     alignItems: 'center',
   },
-  statValue: { fontSize: 32, fontWeight: '900' },
-  statLabel: { fontSize: 15, color: colors.muted },
-  list: { backgroundColor: colors.card, borderRadius: 20, padding: 16, gap: 8 },
+  statValue: { fontSize: 32, fontFamily: fonts.display, lineHeight: 40 },
+  statLabel: { fontSize: 15, fontFamily: fonts.bold, color: colors.muted },
+  list: { backgroundColor: colors.card, borderRadius: 24, padding: 16, gap: 6 },
   listRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  listMark: { fontSize: 20, fontWeight: '900', width: 24, textAlign: 'center' },
-  listWord: { fontSize: 18, color: colors.text },
+  listMark: { fontSize: 20, fontFamily: fonts.display, width: 24, textAlign: 'center' },
+  listWord: { fontSize: 18, fontFamily: fonts.body, color: colors.text },
 });

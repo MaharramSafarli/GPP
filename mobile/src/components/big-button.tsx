@@ -1,20 +1,25 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
+import { fonts } from '@/theme';
+
 type Props = {
   label: string;
   color: string;
   onPress: () => void;
   flex?: boolean;
+  disabled?: boolean;
 };
 
-export function BigButton({ label, color, onPress, flex }: Props) {
+export function BigButton({ label, color, onPress, flex, disabled }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: color },
+        { backgroundColor: color, opacity: disabled ? 0.45 : 1 },
         flex && styles.flex,
         pressed && styles.pressed,
       ]}>
@@ -25,13 +30,15 @@ export function BigButton({ label, color, onPress, flex }: Props) {
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 64,
+    minHeight: 66,
     paddingHorizontal: 20,
-    borderRadius: 20,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    borderBottomWidth: 6,
+    borderBottomColor: 'rgba(0,0,0,0.18)',
   },
   flex: { flex: 1 },
-  pressed: { opacity: 0.8, transform: [{ scale: 0.97 }] },
-  label: { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center' },
+  pressed: { transform: [{ scale: 0.96 }], borderBottomWidth: 2 },
+  label: { fontSize: 22, fontFamily: fonts.display, color: '#fff', textAlign: 'center' },
 });

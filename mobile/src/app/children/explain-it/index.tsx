@@ -1,83 +1,131 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
-import { EXPLAIN_IT_WORDS } from '@/data/explain-it-words';
-import { colors } from '@/theme';
+import { Screen } from '@/components/screen';
+import { CATEGORIES, EXPLAIN_IT_WORDS, type CategoryId } from '@/data/explain-it-words';
+import { colors, fonts } from '@/theme';
 
 const ROUND_OPTIONS = [30, 60, 90];
 
+const RULES = [
+  '📱 Bir oyunçu telefonu tutur və sözü görür.',
+  '🗣️ Sözü elə izah et ki, dostların tapsın.',
+  '🚫 Sözün özünü və 5 qadağan sözü demək olmaz!',
+  '⏱️ Vaxt bitənə qədər çoxlu söz tap.',
+];
+
 export default function ExplainItSetupScreen() {
   const [seconds, setSeconds] = useState(60);
+  const [selected, setSelected] = useState<CategoryId[]>(CATEGORIES.map((c) => c.id));
+
+  const toggle = (id: CategoryId) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const wordCount = EXPLAIN_IT_WORDS.filter((w) => selected.includes(w.category)).length;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.emoji}>🗣️</Text>
-      <Text style={styles.title}>How to play</Text>
+    <Screen>
+      <Text style={styles.title}>Necə oynanılır?</Text>
       <View style={styles.card}>
-        <Text style={styles.rule}>1. One player holds the phone and sees the word.</Text>
-        <Text style={styles.rule}>2. Explain the word so your friends can guess it.</Text>
-        <Text style={styles.rule}>
-          3. Don&apos;t say the word or any of the 5 forbidden words!
-        </Text>
-        <Text style={styles.rule}>4. Get as many words as you can before time runs out.</Text>
+        {RULES.map((rule) => (
+          <Text key={rule} style={styles.rule}>
+            {rule}
+          </Text>
+        ))}
       </View>
 
-      <Text style={styles.subtitle}>Round time</Text>
-      <View style={styles.options}>
-        {ROUND_OPTIONS.map((option) => {
-          const selected = option === seconds;
+      <Text style={styles.subtitle}>Mövzular</Text>
+      <View style={styles.chips}>
+        {CATEGORIES.map((c) => {
+          const on = selected.includes(c.id);
           return (
             <Pressable
-              key={option}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => setSeconds(option)}
-              style={[styles.option, selected && styles.optionSelected]}>
-              <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                {option}s
+              key={c.id}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: on }}
+              onPress={() => toggle(c.id)}
+              style={[styles.chip, on ? { backgroundColor: c.color, borderColor: c.color } : null]}>
+              <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                {c.emoji} {c.title}
               </Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Text style={styles.count}>{EXPLAIN_IT_WORDS.length} words available</Text>
+      <Text style={styles.subtitle}>Raund vaxtı</Text>
+      <View style={styles.options}>
+        {ROUND_OPTIONS.map((option) => {
+          const on = option === seconds;
+          return (
+            <Pressable
+              key={option}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+              onPress={() => setSeconds(option)}
+              style={[styles.option, on && styles.optionOn]}>
+              <Text style={[styles.optionText, on && styles.optionTextOn]}>{option} san</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={styles.count}>
+        {wordCount > 0 ? `${wordCount} söz hazırdır` : 'Ən azı bir mövzu seç'}
+      </Text>
 
       <BigButton
-        label="Start!"
+        label="Başla! 🚀"
         color={colors.primary}
+        disabled={wordCount === 0}
         onPress={() =>
           router.push({
             pathname: '/children/explain-it/play',
-            params: { seconds: String(seconds) },
+            params: { seconds: String(seconds), categories: selected.join(',') },
           })
         }
       />
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 16 },
-  emoji: { fontSize: 64, textAlign: 'center' },
-  title: { fontSize: 28, fontWeight: '800', color: colors.text, textAlign: 'center' },
-  card: { backgroundColor: colors.card, borderRadius: 20, padding: 20, gap: 10 },
-  rule: { fontSize: 17, color: colors.text, lineHeight: 24 },
-  subtitle: { fontSize: 20, fontWeight: '700', color: colors.text },
-  options: { flexDirection: 'row', gap: 12 },
+  title: { fontSize: 32, fontFamily: fonts.display, color: colors.text, lineHeight: 42 },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    padding: 18,
+    gap: 10,
+    borderWidth: 3,
+    borderColor: '#E9E3FF',
+  },
+  rule: { fontSize: 17, fontFamily: fonts.body, color: colors.text, lineHeight: 24 },
+  subtitle: { fontSize: 22, fontFamily: fonts.heading, color: colors.text, lineHeight: 28 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  chip: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: colors.card,
+    borderWidth: 3,
+    borderColor: '#E9E3FF',
+  },
+  chipText: { fontSize: 16, fontFamily: fonts.bold, color: colors.muted },
+  chipTextOn: { color: '#fff' },
+  options: { flexDirection: 'row', gap: 10 },
   option: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 16,
+    paddingVertical: 12,
+    borderRadius: 18,
     backgroundColor: colors.card,
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: 'transparent',
+    borderColor: '#E9E3FF',
   },
-  optionSelected: { borderColor: colors.primary },
-  optionText: { fontSize: 18, fontWeight: '700', color: colors.muted },
-  optionTextSelected: { color: colors.primary },
-  count: { fontSize: 15, color: colors.muted, textAlign: 'center' },
+  optionOn: { borderColor: colors.primary, backgroundColor: '#EFEAFF' },
+  optionText: { fontSize: 18, fontFamily: fonts.bold, color: colors.muted },
+  optionTextOn: { color: colors.primary },
+  count: { fontSize: 16, fontFamily: fonts.bold, color: colors.muted, textAlign: 'center' },
 });

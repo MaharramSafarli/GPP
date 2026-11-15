@@ -1,16 +1,17 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
+import { Screen } from '@/components/screen';
 import { Tile } from '@/components/tile';
 import { SECTIONS } from '@/data/catalog';
-import { colors } from '@/theme';
+import { colors, fonts } from '@/theme';
 
 const section = SECTIONS.find((s) => s.id === 'children')!;
 
 export default function ChildrenScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>Games</Text>
+    <Screen>
+      <Text style={styles.heading}>🎮 Oyunlar</Text>
       {section.games.map((game) => (
         <Tile
           key={game.id}
@@ -21,11 +22,10 @@ export default function ChildrenScreen() {
           onPress={() => router.push(game.href)}
         />
       ))}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 16 },
-  heading: { fontSize: 28, fontWeight: '800', color: colors.text, marginBottom: 4 },
+  heading: { fontSize: 32, fontFamily: fonts.display, color: colors.text, lineHeight: 42 },
 });

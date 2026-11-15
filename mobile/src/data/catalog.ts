@@ -10,7 +10,7 @@ export type Game = {
   href: Href;
 };
 
-/** A top-level section of the platform (e.g. Children). */
+/** A top-level section of the platform (e.g. Uşaqlar). */
 export type Section = {
   id: string;
   title: string;
@@ -25,18 +25,18 @@ export type Section = {
 export const SECTIONS: Section[] = [
   {
     id: 'children',
-    title: 'Children',
-    description: 'Fun games for kids',
+    title: 'Uşaqlar',
+    description: 'Uşaqlar üçün əyləncəli oyunlar',
     emoji: '🧸',
-    color: '#FF8A5B',
+    color: '#FF7A59',
     href: '/children',
     games: [
       {
         id: 'explain-it',
-        title: 'Explain It!',
-        description: 'Explain the word without saying the 5 forbidden words',
+        title: 'İzah et!',
+        description: '5 qadağan sözü demədən sözü izah et',
         emoji: '🗣️',
-        color: '#6C63FF',
+        color: '#7B5CFF',
         href: '/children/explain-it',
       },
     ],
