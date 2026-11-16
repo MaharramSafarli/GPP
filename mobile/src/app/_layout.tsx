@@ -5,9 +5,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { SettingsProvider } from '@/lib/settings';
 import { colors, fonts } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+const hidden = { headerShown: false, gestureEnabled: false } as const;
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -24,7 +27,7 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <>
+    <SettingsProvider>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -38,11 +41,13 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ title: 'Ana səhifə' }} />
         <Stack.Screen name="children/index" options={{ title: 'Uşaqlar' }} />
         <Stack.Screen name="children/explain-it/index" options={{ title: 'İzah et!' }} />
-        <Stack.Screen
-          name="children/explain-it/play"
-          options={{ title: 'İzah et!', gestureEnabled: false }}
-        />
+        <Stack.Screen name="children/explain-it/setup" options={{ title: 'Yeni oyun' }} />
+        <Stack.Screen name="children/explain-it/play" options={hidden} />
+        <Stack.Screen name="children/memory/index" options={{ title: 'Kartları tap' }} />
+        <Stack.Screen name="children/memory/[level]" options={hidden} />
+        <Stack.Screen name="children/crossword/index" options={hidden} />
+        <Stack.Screen name="children/word-search/index" options={hidden} />
       </Stack>
-    </>
+    </SettingsProvider>
   );
 }

@@ -1,131 +1,85 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
+import { ExplainSettingsModal } from '@/components/explain-settings';
+import { ModalCard } from '@/components/modal-card';
 import { Screen } from '@/components/screen';
-import { CATEGORIES, EXPLAIN_IT_WORDS, type CategoryId } from '@/data/explain-it-words';
+import { playSound } from '@/lib/sound';
 import { colors, fonts } from '@/theme';
 
-const ROUND_OPTIONS = [30, 60, 90];
-
 const RULES = [
-  '📱 Bir oyunçu telefonu tutur və sözü görür.',
-  '🗣️ Sözü elə izah et ki, dostların tapsın.',
+  '👥 İki komanda növbə ilə oynayır.',
+  '📱 Bir oyunçu telefonu tutur və sözü öz komandasına izah edir.',
   '🚫 Sözün özünü və 5 qadağan sözü demək olmaz!',
-  '⏱️ Vaxt bitənə qədər çoxlu söz tap.',
+  '✅ Düzgün tapılan söz +1 xal, qadağan söz deyilsə −1 xal.',
+  '⏭️ Çətin sözü pas keçə bilərsən, amma pas haqqı məhduddur.',
+  '⏸️ Oyunu istənilən vaxt dayandıra bilərsən.',
 ];
 
-export default function ExplainItSetupScreen() {
-  const [seconds, setSeconds] = useState(60);
-  const [selected, setSelected] = useState<CategoryId[]>(CATEGORIES.map((c) => c.id));
-
-  const toggle = (id: CategoryId) =>
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  const wordCount = EXPLAIN_IT_WORDS.filter((w) => selected.includes(w.category)).length;
+export default function ExplainItMenu() {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   return (
     <Screen>
-      <Text style={styles.title}>Necə oynanılır?</Text>
-      <View style={styles.card}>
-        {RULES.map((rule) => (
-          <Text key={rule} style={styles.rule}>
-            {rule}
+      <View style={styles.hero}>
+        <Text style={styles.heroEmoji}>💬💡</Text>
+        <Text style={styles.title}>İzah et!</Text>
+        <Text style={styles.sub}>Sözü izah et, qadağan sözləri demə!</Text>
+      </View>
+
+      <View style={styles.menu}>
+        <BigButton
+          label="▶ Oyuna başla"
+          color={colors.skip}
+          onPress={() => {
+            playSound('tap');
+            router.push('/children/explain-it/setup');
+          }}
+        />
+        <BigButton
+          label="⚙️ Ayarlar"
+          color={colors.primary}
+          onPress={() => {
+            playSound('tap');
+            setSettingsOpen(true);
+          }}
+        />
+        <BigButton
+          label="❓ Necə oynanılır?"
+          color="#4D96FF"
+          onPress={() => {
+            playSound('tap');
+            setRulesOpen(true);
+          }}
+        />
+      </View>
+
+      <ExplainSettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      <ModalCard
+        visible={rulesOpen}
+        icon="❓"
+        title="Necə oynanılır?"
+        onRequestClose={() => setRulesOpen(false)}>
+        {RULES.map((r) => (
+          <Text key={r} style={styles.rule}>
+            {r}
           </Text>
         ))}
-      </View>
-
-      <Text style={styles.subtitle}>Mövzular</Text>
-      <View style={styles.chips}>
-        {CATEGORIES.map((c) => {
-          const on = selected.includes(c.id);
-          return (
-            <Pressable
-              key={c.id}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: on }}
-              onPress={() => toggle(c.id)}
-              style={[styles.chip, on ? { backgroundColor: c.color, borderColor: c.color } : null]}>
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                {c.emoji} {c.title}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Text style={styles.subtitle}>Raund vaxtı</Text>
-      <View style={styles.options}>
-        {ROUND_OPTIONS.map((option) => {
-          const on = option === seconds;
-          return (
-            <Pressable
-              key={option}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: on }}
-              onPress={() => setSeconds(option)}
-              style={[styles.option, on && styles.optionOn]}>
-              <Text style={[styles.optionText, on && styles.optionTextOn]}>{option} san</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Text style={styles.count}>
-        {wordCount > 0 ? `${wordCount} söz hazırdır` : 'Ən azı bir mövzu seç'}
-      </Text>
-
-      <BigButton
-        label="Başla! 🚀"
-        color={colors.primary}
-        disabled={wordCount === 0}
-        onPress={() =>
-          router.push({
-            pathname: '/children/explain-it/play',
-            params: { seconds: String(seconds), categories: selected.join(',') },
-          })
-        }
-      />
+        <BigButton label="Anladım!" color={colors.correct} onPress={() => setRulesOpen(false)} />
+      </ModalCard>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 32, fontFamily: fonts.display, color: colors.text, lineHeight: 42 },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
-    padding: 18,
-    gap: 10,
-    borderWidth: 3,
-    borderColor: '#E9E3FF',
-  },
+  hero: { alignItems: 'center', marginTop: 24, marginBottom: 24 },
+  heroEmoji: { fontSize: 72 },
+  title: { fontSize: 56, fontFamily: fonts.display, color: colors.primary, lineHeight: 68 },
+  sub: { fontSize: 17, fontFamily: fonts.body, color: colors.muted, textAlign: 'center' },
+  menu: { gap: 14, paddingHorizontal: 12 },
   rule: { fontSize: 17, fontFamily: fonts.body, color: colors.text, lineHeight: 24 },
-  subtitle: { fontSize: 22, fontFamily: fonts.heading, color: colors.text, lineHeight: 28 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: colors.card,
-    borderWidth: 3,
-    borderColor: '#E9E3FF',
-  },
-  chipText: { fontSize: 16, fontFamily: fonts.bold, color: colors.muted },
-  chipTextOn: { color: '#fff' },
-  options: { flexDirection: 'row', gap: 10 },
-  option: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 18,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#E9E3FF',
-  },
-  optionOn: { borderColor: colors.primary, backgroundColor: '#EFEAFF' },
-  optionText: { fontSize: 18, fontFamily: fonts.bold, color: colors.muted },
-  optionTextOn: { color: colors.primary },
-  count: { fontSize: 16, fontFamily: fonts.bold, color: colors.muted, textAlign: 'center' },
 });

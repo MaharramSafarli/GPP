@@ -1,167 +1,354 @@
-import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, BackHandler, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { Confetti } from '@/components/confetti';
+import { IconToggle, RoundButton } from '@/components/controls';
+import { ModalCard } from '@/components/modal-card';
 import { Screen } from '@/components/screen';
 import { CATEGORIES, EXPLAIN_IT_WORDS, type WordCard } from '@/data/explain-it-words';
+import { TEAM_COLORS, TEAM_EMOJI } from '@/games/explain-it/teams';
 import { shuffle } from '@/games/explain-it/shuffle';
+import { useSettings } from '@/lib/settings';
+import { playSound, startMusic, stopMusic, vibrate } from '@/lib/sound';
 import { colors, fonts } from '@/theme';
 
-type Outcome = 'correct' | 'skip' | 'foul';
-type Result = { card: WordCard; outcome: Outcome };
+type Phase = 'intro' | 'playing' | 'paused' | 'turnEnd' | 'over';
+type TurnStats = { correct: number; foul: number; skip: number };
+const EMPTY_STATS: TurnStats = { correct: 0, foul: 0, skip: 0 };
 
-const categoryOf = (card: WordCard) => CATEGORIES.find((c) => c.id === card.category)!;
-
-export default function ExplainItPlayScreen() {
+export default function ExplainItPlay() {
   useKeepAwake();
-  const params = useLocalSearchParams<{ seconds?: string; categories?: string }>();
-  const roundSeconds = Number(params.seconds) || 60;
+  const insets = useSafeAreaInsets();
+  const { settings, update } = useSettings();
+  const params = useLocalSearchParams<{ teamA?: string; teamB?: string; categories?: string }>();
+  const teams = [params.teamA || 'Komanda 1', params.teamB || 'Komanda 2'];
   const chosen = params.categories?.split(',') ?? CATEGORIES.map((c) => c.id);
-  const pool = EXPLAIN_IT_WORDS.filter((w) => chosen.includes(w.category));
 
-  const [deck, setDeck] = useState(() => shuffle(pool));
+  // Settings are frozen when the game starts so a change mid-game can't break it.
+  const [rules] = useState(() => ({
+    seconds: settings.roundSeconds,
+    mode: settings.mode,
+    target: settings.targetScore,
+    rounds: settings.roundCount,
+    passes: settings.passLimit,
+    timeUp: settings.timeUpSound,
+  }));
+
+  const [deck, setDeck] = useState<WordCard[]>(() =>
+    shuffle(EXPLAIN_IT_WORDS.filter((w) => chosen.includes(w.category))),
+  );
   const [index, setIndex] = useState(0);
-  const [results, setResults] = useState<Result[]>([]);
-  const [endsAt, setEndsAt] = useState(() => Date.now() + roundSeconds * 1000);
-  const [now, setNow] = useState(() => Date.now());
+  const [phase, setPhase] = useState<Phase>('intro');
+  const [turn, setTurn] = useState(0);
+  const [scores, setScores] = useState([0, 0]);
+  const [stats, setStats] = useState<TurnStats>(EMPTY_STATS);
+  const [passesLeft, setPassesLeft] = useState(rules.passes);
+  const [remainingMs, setRemainingMs] = useState(rules.seconds * 1000);
+  const [confetti, setConfetti] = useState(0);
+  const endsAt = useRef(0);
+  const lastTick = useRef(-1);
 
-  const remaining = Math.max(0, Math.ceil((endsAt - now) / 1000));
-  const outOfWords = index >= deck.length;
-  const finished = remaining === 0 || outOfWords;
+  const team = turn % 2;
+  const round = Math.floor(turn / 2) + 1;
+  const remaining = Math.ceil(remainingMs / 1000);
+  const card = deck[index % deck.length];
 
+  // Countdown while playing.
   useEffect(() => {
-    if (finished) return;
-    const timer = setInterval(() => setNow(Date.now()), 250);
+    if (phase !== 'playing') return;
+    const timer = setInterval(() => {
+      const left = Math.max(0, endsAt.current - Date.now());
+      setRemainingMs(left);
+      const sec = Math.ceil(left / 1000);
+      if (sec <= 5 && sec > 0 && sec !== lastTick.current) {
+        lastTick.current = sec;
+        playSound('tick');
+      }
+      if (left <= 0) endTurn();
+    }, 200);
     return () => clearInterval(timer);
-  }, [finished]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
+  // Music only while a turn is running.
   useEffect(() => {
-    if (finished) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [finished]);
+    if (phase === 'playing') startMusic();
+    else stopMusic();
+  }, [phase]);
+  useEffect(() => () => stopMusic(), []);
 
-  const answer = (outcome: Outcome) => {
-    if (finished) return;
-    Haptics.impactAsync(
-      outcome === 'correct' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
-    );
-    setResults((prev) => [...prev, { card: deck[index], outcome }]);
-    setIndex((i) => i + 1);
+  // Android back button and leaving the app pause the game.
+  useEffect(() => {
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (phase === 'playing') pause();
+      return phase !== 'over';
+    });
+    const app = AppState.addEventListener('change', (s) => {
+      if (s !== 'active' && phase === 'playing') pause();
+    });
+    return () => {
+      back.remove();
+      app.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  const startTurn = () => {
+    playSound('tap');
+    endsAt.current = Date.now() + rules.seconds * 1000;
+    lastTick.current = -1;
+    setRemainingMs(rules.seconds * 1000);
+    setPassesLeft(rules.passes);
+    setStats(EMPTY_STATS);
+    setPhase('playing');
+  };
+
+  const pause = () => {
+    setRemainingMs(Math.max(0, endsAt.current - Date.now()));
+    setPhase('paused');
+    playSound('tap');
+  };
+
+  const resume = () => {
+    endsAt.current = Date.now() + remainingMs;
+    setPhase('playing');
+  };
+
+  const nextCard = () => {
+    if (index + 1 >= deck.length) {
+      setDeck(shuffle(deck));
+      setIndex(0);
+    } else setIndex(index + 1);
+  };
+
+  const finish = () => {
+    setPhase('over');
+    playSound('win');
+    vibrate('success');
+    setConfetti((c) => c + 1);
+  };
+
+  function endTurn() {
+    playSound(rules.timeUp);
+    vibrate('error');
+    const lastTurn = rules.mode === 'rounds' && turn + 1 >= rules.rounds * 2;
+    if (lastTurn) finish();
+    else setPhase('turnEnd');
+  }
+
+  const answer = (kind: 'correct' | 'foul' | 'skip') => {
+    if (phase !== 'playing') return;
+    if (kind === 'skip') {
+      if (passesLeft <= 0) return;
+      setPassesLeft((p) => p - 1);
+      playSound('skip');
+      vibrate('light');
+    } else {
+      playSound(kind === 'correct' ? 'correct' : 'wrong');
+      vibrate(kind === 'correct' ? 'medium' : 'error');
+    }
+    setStats((s) => ({ ...s, [kind]: s[kind] + 1 }));
+    const delta = kind === 'correct' ? 1 : kind === 'foul' ? -1 : 0;
+    const next = [...scores];
+    next[team] = Math.max(0, next[team] + delta);
+    setScores(next);
+    nextCard();
+    if (rules.mode === 'score' && next[team] >= rules.target) finish();
+  };
+
+  const nextTurn = () => {
+    setTurn((t) => t + 1);
+    setPhase('intro');
   };
 
   const playAgain = () => {
-    setDeck(shuffle(pool));
+    setScores([0, 0]);
+    setTurn(0);
+    setDeck(shuffle(deck));
     setIndex(0);
-    setResults([]);
-    const start = Date.now();
-    setNow(start);
-    setEndsAt(start + roundSeconds * 1000);
+    setConfetti(0);
+    setPhase('intro');
   };
 
-  if (finished) {
-    return <ResultsView results={results} outOfWords={outOfWords} onPlayAgain={playAgain} />;
-  }
+  const goHome = () => {
+    stopMusic();
+    router.dismissTo('/children');
+  };
 
-  const card = deck[index];
-  const category = categoryOf(card);
-  const lowTime = remaining <= 10;
-  const score = results.filter((r) => r.outcome === 'correct').length;
+  const category = CATEGORIES.find((c) => c.id === card.category)!;
+  const low = remaining <= 10;
+  const winner = scores[0] === scores[1] ? -1 : scores[0] > scores[1] ? 0 : 1;
+  const goalText =
+    rules.mode === 'score' ? `🏆 Hədəf: ${rules.target} xal` : `🔁 Raund ${round} / ${rules.rounds}`;
 
   return (
     <Screen scroll={false}>
-      <View style={styles.topBar}>
-        <View style={[styles.pill, lowTime && { backgroundColor: colors.foul }]}>
-          <Text style={[styles.pillText, lowTime && { color: '#fff' }]}>⏱️ {remaining}</Text>
-        </View>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>⭐ {score}</Text>
-        </View>
+      <View style={[styles.topBar, { marginTop: insets.top }]}>
+        <TeamPill name={teams[0]} score={scores[0]} index={0} active={team === 0} />
+        <RoundButton
+          icon={phase === 'playing' ? '⏸️' : '▶️'}
+          label={phase === 'playing' ? 'Dayandır' : 'Davam et'}
+          onPress={() => (phase === 'playing' ? pause() : phase === 'paused' ? resume() : undefined)}
+        />
+        <TeamPill name={teams[1]} score={scores[1]} index={1} active={team === 1} />
       </View>
+      <Text style={styles.goal}>{goalText}</Text>
 
-      <View style={[styles.card, { borderColor: category.color }]}>
-        <View style={[styles.tag, { backgroundColor: category.color }]}>
-          <Text style={styles.tagText}>
-            {category.emoji} {category.title}
-          </Text>
-        </View>
-        <Text
-          style={[styles.word, { color: category.color }]}
-          adjustsFontSizeToFit
-          numberOfLines={2}>
-          {card.word}
-        </Text>
-        <View style={styles.forbiddenBox}>
-          <Text style={styles.dontSay}>🚫 Demək olmaz</Text>
-          {card.forbidden.map((w) => (
-            <Text key={w} style={styles.forbidden}>
-              {w}
-            </Text>
-          ))}
-        </View>
-      </View>
+      {phase === 'playing' || phase === 'paused' ? (
+        <>
+          <View style={styles.timerWrap}>
+            <View style={[styles.timer, { borderColor: low ? colors.foul : colors.skip }]}>
+              <Text style={[styles.timerText, low && { color: colors.foul }]}>{remaining}</Text>
+            </View>
+          </View>
 
-      <View style={styles.actions}>
-        <BigButton label="✓ Düzdür" color={colors.correct} onPress={() => answer('correct')} />
-        <View style={styles.row}>
-          <BigButton label="Keç →" color={colors.skip} onPress={() => answer('skip')} flex />
-          <BigButton label="Qadağan ✗" color={colors.foul} onPress={() => answer('foul')} flex />
+          <View style={[styles.card, { borderColor: category.color }]}>
+            <View style={[styles.wordBox, { backgroundColor: category.color }]}>
+              <Text style={styles.tagText}>
+                {category.emoji} {category.title}
+              </Text>
+              <Text style={styles.word} adjustsFontSizeToFit numberOfLines={2}>
+                {phase === 'paused' ? '• • •' : card.word}
+              </Text>
+            </View>
+            <Text style={styles.dontSay}>🚫 Demək olmaz</Text>
+            <View style={styles.forbiddenList}>
+              {card.forbidden.map((w) => (
+                <Text key={w} style={styles.forbidden}>
+                  {phase === 'paused' ? '• • •' : w}
+                </Text>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.actions}>
+            <ActionButton label="Qadağan" icon="✗" color={colors.foul} onPress={() => answer('foul')} />
+            <ActionButton
+              label={`Pas (${passesLeft})`}
+              icon="⏭"
+              color={colors.skip}
+              disabled={passesLeft <= 0}
+              onPress={() => answer('skip')}
+            />
+            <ActionButton label="Düzdür" icon="✓" color={colors.correct} onPress={() => answer('correct')} />
+          </View>
+        </>
+      ) : (
+        <View style={styles.center}>
+          {phase === 'intro' && (
+            <View style={styles.panel}>
+              <Text style={styles.bigEmoji}>{TEAM_EMOJI[team]}</Text>
+              <Text style={styles.panelSmall}>Növbə</Text>
+              <Text style={[styles.panelTitle, { color: TEAM_COLORS[team] }]}>{teams[team]}</Text>
+              <Text style={styles.panelText}>
+                Telefonu izah edəcək oyunçuya ver. Hazırsınız? ⏱️ {rules.seconds} saniyə
+              </Text>
+              <BigButton label="▶ Başla!" color={TEAM_COLORS[team]} onPress={startTurn} />
+            </View>
+          )}
+          {phase === 'turnEnd' && (
+            <View style={styles.panel}>
+              <Text style={styles.bigEmoji}>⏰</Text>
+              <Text style={styles.panelTitle}>Vaxt bitdi!</Text>
+              <Text style={styles.panelText}>{teams[team]} bu raundda:</Text>
+              <View style={styles.statsRow}>
+                <Stat label="Düzgün" value={stats.correct} color={colors.correct} />
+                <Stat label="Pas" value={stats.skip} color={colors.skip} />
+                <Stat label="Qadağan" value={stats.foul} color={colors.foul} />
+              </View>
+              <BigButton
+                label={`Növbə: ${teams[1 - team]} ▶`}
+                color={TEAM_COLORS[1 - team]}
+                onPress={nextTurn}
+              />
+            </View>
+          )}
+          {phase === 'over' && (
+            <View style={styles.panel}>
+              <Text style={styles.bigEmoji}>{winner === -1 ? '🤝' : '🏆'}</Text>
+              <Text style={styles.panelTitle}>
+                {winner === -1 ? 'Bərabərlik!' : `${teams[winner]} qalib!`}
+              </Text>
+              <View style={styles.statsRow}>
+                <Stat label={teams[0]} value={scores[0]} color={TEAM_COLORS[0]} />
+                <Stat label={teams[1]} value={scores[1]} color={TEAM_COLORS[1]} />
+              </View>
+              <BigButton label="🔁 Yenidən oyna" color={colors.primary} onPress={playAgain} />
+              <BigButton label="🏠 Ana səhifə" color={colors.muted} onPress={goHome} />
+            </View>
+          )}
         </View>
-      </View>
+      )}
+
+      <ModalCard visible={phase === 'paused'} icon="⏸️" title="Oyun dayandı!" onRequestClose={resume}>
+        <View style={styles.toggles}>
+          <IconToggle icon="🎵" label="Musiqi" value={settings.music} onChange={(music) => update({ music })} />
+          <IconToggle icon="🔊" label="Səs" value={settings.sfx} onChange={(sfx) => update({ sfx })} />
+          <IconToggle
+            icon="📳"
+            label="Vibrasiya"
+            value={settings.vibration}
+            onChange={(vibration) => update({ vibration })}
+          />
+        </View>
+        <BigButton label="▶ Davam et" color={colors.skip} onPress={resume} />
+        <BigButton label="🏠 Ana səhifə" color={colors.primary} onPress={goHome} />
+      </ModalCard>
+
+      <Confetti burst={confetti} />
     </Screen>
   );
 }
 
-function ResultsView({
-  results,
-  outOfWords,
-  onPlayAgain,
+function TeamPill({
+  name,
+  score,
+  index,
+  active,
 }: {
-  results: Result[];
-  outOfWords: boolean;
-  onPlayAgain: () => void;
+  name: string;
+  score: number;
+  index: number;
+  active: boolean;
 }) {
-  const count = (o: Outcome) => results.filter((r) => r.outcome === o).length;
-  const mark: Record<Outcome, string> = { correct: '✓', skip: '→', foul: '✗' };
-  const color: Record<Outcome, string> = {
-    correct: colors.correct,
-    skip: colors.skip,
-    foul: colors.foul,
-  };
-
   return (
-    <Screen>
-      <Text style={styles.resultsEmoji}>🎉</Text>
-      <Text style={styles.resultsTitle}>{outOfWords ? 'Sözlər bitdi!' : 'Vaxt bitdi!'}</Text>
-      <View style={styles.scoreBubble}>
-        <Text style={styles.bigScore}>{count('correct')}</Text>
-        <Text style={styles.bigScoreLabel}>düzgün söz</Text>
+    <View
+      style={[
+        styles.pill,
+        index === 1 && styles.pillRight,
+        active && { borderColor: TEAM_COLORS[index], backgroundColor: '#fff' },
+      ]}>
+      <Text style={styles.pillName} numberOfLines={1}>
+        {name}
+      </Text>
+      <View style={[styles.pillScore, { backgroundColor: TEAM_COLORS[index] }]}>
+        <Text style={styles.pillScoreText}>{score}</Text>
       </View>
+    </View>
+  );
+}
 
-      <View style={styles.row}>
-        <Stat label="Keçildi" value={count('skip')} color={colors.skip} />
-        <Stat label="Qadağan" value={count('foul')} color={colors.foul} />
-      </View>
-
-      {results.length > 0 && (
-        <View style={styles.list}>
-          {results.map((r, i) => (
-            <View key={i} style={styles.listRow}>
-              <Text style={[styles.listMark, { color: color[r.outcome] }]}>{mark[r.outcome]}</Text>
-              <Text style={styles.listWord}>{r.card.word}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      <BigButton label="Yenidən oyna 🔁" color={colors.primary} onPress={onPlayAgain} />
-      <BigButton
-        label="Oyunlara qayıt"
-        color={colors.muted}
-        onPress={() => router.dismissTo('/children')}
-      />
-    </Screen>
+function ActionButton({
+  label,
+  icon,
+  color,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  icon: string;
+  color: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.actionWrap}>
+      <BigButton label={`${icon}\n${label}`} color={color} disabled={disabled} onPress={onPress} />
+    </View>
   );
 }
 
@@ -169,89 +356,109 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
   return (
     <View style={[styles.stat, { borderColor: color }]}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statLabel} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  topBar: { flexDirection: 'row', justifyContent: 'space-between' },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pill: {
-    backgroundColor: colors.card,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 4,
-    minWidth: 96,
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 18,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    padding: 4,
+    paddingLeft: 6,
   },
-  pillText: {
-    fontSize: 28,
-    fontFamily: fonts.display,
-    color: colors.text,
-    fontVariant: ['tabular-nums'],
+  pillRight: { flexDirection: 'row-reverse', paddingLeft: 4, paddingRight: 6 },
+  pillName: { flex: 1, fontSize: 14, fontFamily: fonts.bold, color: colors.text, textAlign: 'center' },
+  pillScore: {
+    minWidth: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
+  pillScoreText: { fontSize: 22, fontFamily: fonts.display, color: '#fff', lineHeight: 28 },
+  goal: { fontSize: 15, fontFamily: fonts.bold, color: colors.muted, textAlign: 'center', marginTop: -6 },
+  timerWrap: { alignItems: 'center', marginTop: -6 },
+  timer: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 7,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timerText: { fontSize: 38, fontFamily: fonts.display, color: colors.text, lineHeight: 46 },
   card: {
     flex: 1,
     backgroundColor: colors.card,
-    borderRadius: 32,
-    borderWidth: 5,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'space-evenly',
+    borderRadius: 30,
+    borderWidth: 4,
+    padding: 14,
+    gap: 6,
     shadowColor: '#2D2A6E',
     shadowOpacity: 0.15,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 5,
   },
-  tag: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 4 },
-  tagText: { fontSize: 15, fontFamily: fonts.bold, color: '#fff' },
-  word: { fontSize: 50, fontFamily: fonts.display, textAlign: 'center', lineHeight: 62 },
-  forbiddenBox: {
-    alignSelf: 'stretch',
+  wordBox: { borderRadius: 22, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center' },
+  tagText: { fontSize: 13, fontFamily: fonts.bold, color: 'rgba(255,255,255,0.9)' },
+  word: { fontSize: 40, fontFamily: fonts.display, color: '#fff', textAlign: 'center', lineHeight: 50 },
+  dontSay: { fontSize: 15, fontFamily: fonts.bold, color: colors.foul, textAlign: 'center' },
+  forbiddenList: {
+    flex: 1,
     backgroundColor: '#FFF0F3',
-    borderRadius: 22,
-    paddingVertical: 12,
+    borderRadius: 20,
+    justifyContent: 'space-evenly',
     alignItems: 'center',
-    gap: 2,
+    paddingVertical: 4,
   },
-  dontSay: { fontSize: 16, fontFamily: fonts.bold, color: colors.foul, marginBottom: 4 },
   forbidden: { fontSize: 22, fontFamily: fonts.heading, color: colors.text, lineHeight: 30 },
-  actions: { gap: 12 },
-  row: { flexDirection: 'row', gap: 12 },
-  resultsEmoji: { fontSize: 64, textAlign: 'center' },
-  resultsTitle: {
-    fontSize: 38,
+  actions: { flexDirection: 'row', gap: 10 },
+  actionWrap: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center' },
+  panel: {
+    backgroundColor: colors.card,
+    borderRadius: 30,
+    padding: 22,
+    gap: 12,
+    alignItems: 'stretch',
+    borderBottomWidth: 8,
+    borderBottomColor: '#E2DBFF',
+  },
+  bigEmoji: { fontSize: 64, textAlign: 'center' },
+  panelSmall: { fontSize: 16, fontFamily: fonts.bold, color: colors.muted, textAlign: 'center' },
+  panelTitle: {
+    fontSize: 34,
     fontFamily: fonts.display,
     color: colors.text,
     textAlign: 'center',
-    lineHeight: 48,
+    lineHeight: 42,
   },
-  scoreBubble: {
-    alignSelf: 'center',
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    backgroundColor: colors.card,
-    borderWidth: 6,
-    borderColor: colors.correct,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bigScore: { fontSize: 72, fontFamily: fonts.display, color: colors.correct, lineHeight: 84 },
-  bigScoreLabel: { fontSize: 16, fontFamily: fonts.bold, color: colors.muted, marginTop: -10 },
+  panelText: { fontSize: 17, fontFamily: fonts.body, color: colors.muted, textAlign: 'center' },
+  statsRow: { flexDirection: 'row', gap: 10 },
   stat: {
     flex: 1,
     backgroundColor: colors.card,
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 4,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     alignItems: 'center',
   },
   statValue: { fontSize: 32, fontFamily: fonts.display, lineHeight: 40 },
-  statLabel: { fontSize: 15, fontFamily: fonts.bold, color: colors.muted },
-  list: { backgroundColor: colors.card, borderRadius: 24, padding: 16, gap: 6 },
-  listRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  listMark: { fontSize: 20, fontFamily: fonts.display, width: 24, textAlign: 'center' },
-  listWord: { fontSize: 18, fontFamily: fonts.body, color: colors.text },
+  statLabel: { fontSize: 14, fontFamily: fonts.bold, color: colors.muted },
+  toggles: { flexDirection: 'row', justifyContent: 'space-around' },
 });
