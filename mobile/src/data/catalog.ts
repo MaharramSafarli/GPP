@@ -40,6 +40,14 @@ export const SECTIONS: Section[] = [
         href: '/children/explain-it',
       },
       {
+        id: 'quiz',
+        title: 'Bilik Çarxı',
+        description: 'Çarxı fırlat, sualları cavabla, 6 nişanı topla! Onlayn yarış',
+        emoji: '🎡',
+        color: '#FFB703',
+        href: '/children/quiz',
+      },
+      {
         id: 'memory',
         title: 'Kartları tap',
         description: 'Öyrən və cütləri tap: İslam, İman, Peyğəmbərlər...',

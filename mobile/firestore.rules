@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Player profiles: anyone signed in can read names/avatars; you can only write your own.
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Quiz games between two players.
+    match /games/{gameId} {
+      function signedIn() { return request.auth != null; }
+      function isPlayer(data) { return request.auth.uid in data.players; }
+
+      // Players read their games; anyone signed in can see open/waiting games to join them.
+      allow read: if signedIn() && (isPlayer(resource.data) || resource.data.status == 'waiting');
+
+      // Create a game where you are the only player.
+      allow create: if signedIn()
+        && request.resource.data.players == [request.auth.uid]
+        && request.resource.data.status == 'waiting';
+
+      // Join a waiting game as the second player, or update a game you are in.
+      allow update: if signedIn() && (
+        isPlayer(resource.data)
+        || (resource.data.status == 'waiting'
+            && resource.data.players.size() == 1
+            && request.resource.data.players.size() == 2
+            && request.resource.data.players[0] == resource.data.players[0]
+            && request.resource.data.players[1] == request.auth.uid)
+      );
+
+      allow delete: if false;
+    }
+  }
+}

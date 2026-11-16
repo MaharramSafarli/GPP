@@ -25,6 +25,9 @@ export type Settings = {
   roundCount: number;
   passLimit: number;
   timeUpSound: TimeUpSound;
+  /** Bilik Çarxı */
+  quizSeconds: number;
+  quizRounds: number;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -37,6 +40,8 @@ export const DEFAULT_SETTINGS: Settings = {
   roundCount: 3,
   passLimit: 3,
   timeUpSound: 'timeup-bell',
+  quizSeconds: 30,
+  quizRounds: 15,
 };
 
 const KEY = 'gpp.settings.v1';
