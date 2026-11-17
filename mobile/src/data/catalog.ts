@@ -71,6 +71,22 @@ export const SECTIONS: Section[] = [
         color: '#FF7A59',
         href: '/children/word-search',
       },
+      {
+        id: 'coloring',
+        title: 'Şəkli rənglə',
+        description: 'Rəqəmlə və ya sərbəst rənglə: məscidlər, Kəbə, təbiət...',
+        emoji: '🎨',
+        color: '#FF5FA2',
+        href: '/children/coloring',
+      },
+      {
+        id: 'balloons',
+        title: 'Şarları partlat',
+        description: 'Eyni rəngli 3 şarı birləşdir və partlat! Hər dəfə yeni səviyyə',
+        emoji: '🎈',
+        color: '#00B4C6',
+        href: '/children/balloons',
+      },
     ],
   },
 ];

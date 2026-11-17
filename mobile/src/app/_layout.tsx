@@ -47,6 +47,10 @@ export default function RootLayout() {
         <Stack.Screen name="children/memory/[level]" options={hidden} />
         <Stack.Screen name="children/crossword/index" options={hidden} />
         <Stack.Screen name="children/word-search/index" options={hidden} />
+        <Stack.Screen name="children/coloring/index" options={{ title: 'Şəkli rənglə' }} />
+        <Stack.Screen name="children/coloring/number/[id]" options={hidden} />
+        <Stack.Screen name="children/coloring/free/[id]" options={hidden} />
+        <Stack.Screen name="children/balloons/index" options={hidden} />
         <Stack.Screen name="children/quiz/index" options={{ title: 'Bilik Çarxı' }} />
         <Stack.Screen name="children/quiz/[id]" options={{ headerShown: false }} />
       </Stack>

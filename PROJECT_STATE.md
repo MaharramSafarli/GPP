@@ -73,6 +73,11 @@ Other files in `mobile/`: `firebase.json` + `firestore.rules` (rules source of t
 3. **Kartları tap** (card matching, from the owner's second video) — 6 levels: İslam (5 pillars), İman (6 pillars), Heyvanlar, Həşəratlar, Sünnə yeməkləri, Peyğəmbər hekayələri (`memory-levels.ts`). Learn phase (tap glowing card, explanation shown + read aloud by phone TTS: az-AZ, falls back to tr-TR) → match phase (timer, flips, confetti, stars, Afərin modal). Cards use emoji (no illustrations).
 4. **Krossvord** — generated from 168 Islamic terms (`islamic-terms.ts`), 9 words, one given letter per word, Azerbaijani on-screen keyboard, hint button, word bank, new puzzle.
 5. **Söz tap** (word search) — 10×10, 8 words (→, ↓, ↘, ↗), drag or tap first+last letter, colored found words.
+6. **Şəkli rənglə** (coloring, from the owner's screenshot) — `children/coloring/`:
+   - **Rəqəmlə rənglə** (color by number): pixel-art grids in `data/coloring-numbers.ts` — Məscidül-Həram, Məscidün-Nəbəvi, Məscidül-Əqsa (drawn as the grey-domed Qibli mosque, not the golden Dome of the Rock). Pick a number, tap/drag cells; only the matching number paints; auto-advances to the next color; progress saved.
+   - **Sərbəst rənglə** (free): 8 pictures built from View shapes (`data/coloring-pictures.ts`, 100×120 canvas; kinds rect/circle/dome/triangle, `link` used to cut crescents) — Məscid, Kəbə, Ay və ulduzlar, Fənərlər, Xurma ağacı, Uşaqlar məsciddə (boy with cap, girl in hijab), Təbiət, Qurani-Kərim. Tap-to-fill, 18 colors, undo, clear. No animals (owner's rule).
+   - Saved work (AsyncStorage) shows as thumbnails in the menu = in-app gallery. Saving to the phone's photo gallery would need expo-media-library + react-native-view-shot (new APK) — not done.
+7. **Şarları partlat** (bubble-shooter genre, own design, **no panda/characters**) — `games/balloons/engine.ts` (hex grid 9/8 cols × 13 rows, snap, groups ≥3 pop, floating ones drop, a new row pushes in after N non-popping shots) + `children/balloons/index.tsx`. Every level is randomly generated (5 layout patterns), difficulty grows with level (rows, colors, fewer shots per drop). Drag to aim (dotted guide with wall bounces), release to shoot, tap the small balloon to swap. Level saved in AsyncStorage `balloons`.
 
 ## 7. Key decisions & why
 - **Expo / React Native** — one codebase for Android + iOS; cloud builds (EAS) because the owner has no Mac/PC setup.
@@ -84,6 +89,7 @@ Other files in `mobile/`: `firebase.json` + `firestore.rules` (rules source of t
 - Emoji instead of illustrations — no image assets/licensing; could be replaced with real art later.
 
 ## 8. Where we left off / next steps
+0. Coloring + balloon games added (OTA, no new APK). Owner to test them on the phone.
 1. **⚠️ Waiting on the owner: "resolution / overflow issues"** on their phone in the 1.1.0 games. They said they'll send screenshots; fix them first. (Likely suspects: fixed font sizes on small screens, crossword grid/keyboard width, İzah et! card on short screens, word-search grid height, team names in scoreboard.)
 2. Owner should test **Bilik Çarxı online** with a friend (friend installs the same APK).
 3. Ideas offered, not yet requested: "your turn" **push notifications** (needs expo-notifications + Cloud Function + new APK), **duel/challenge mode** in Bilik Çarxı, treat leaving mid-question as a wrong answer, proper accounts, real voice recordings / illustrations, more sections.
