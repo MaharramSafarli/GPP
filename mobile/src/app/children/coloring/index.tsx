@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { PixelCanvas } from '@/components/coloring/pixel-canvas';
-import { ShapeCanvas } from '@/components/coloring/shape-canvas';
+import { PictureCanvas, pictureRatio } from '@/components/coloring/picture-canvas';
 import { Screen } from '@/components/screen';
 import { FREE_PICTURES } from '@/data/coloring-pictures';
 import { NUMBER_PICTURES, cellIndexes } from '@/data/coloring-numbers';
@@ -100,7 +100,9 @@ export default function ColoringMenu() {
               router.push({ pathname: '/children/coloring/free/[id]', params: { id: p.id } });
             }}
             style={({ pressed }) => [styles.card, { width: thumbW + 16 }, pressed && styles.pressed]}>
-            <ShapeCanvas shapes={p.shapes} fills={fills[p.id] ?? []} width={thumbW} />
+            <View style={{ width: thumbW, height: thumbW * 1.2, alignItems: 'center' }}>
+              <PictureCanvas pic={p} fills={fills[p.id] ?? []} width={Math.min(thumbW, (thumbW * 1.2) / pictureRatio(p))} />
+            </View>
             <Text style={styles.cardTitle} numberOfLines={2}>
               {p.emoji} {p.title}
             </Text>

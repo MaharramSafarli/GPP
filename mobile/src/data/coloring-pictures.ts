@@ -1,3 +1,6 @@
+import alhamdulillah from '@/data/coloring-bitmaps/alhamdulillah';
+import type { BitmapPicture } from '@/data/coloring-bitmaps/types';
+
 /**
  * Free-coloring pictures, drawn from simple shapes on a 100 × 120 canvas
  * (no SVG in the app). Shapes are painted in order: later shapes sit on top.
@@ -22,7 +25,11 @@ export type Shape = {
   nb?: boolean;
 };
 
-export type FreePicture = { id: string; title: string; emoji: string; shapes: Shape[] };
+/** A picture is either built from shapes or is a line drawing (`bitmap`, then `shapes` is empty). */
+export type FreePicture = { id: string; title: string; emoji: string; shapes: Shape[]; bitmap?: BitmapPicture };
+
+/** Number of colorable parts (the length of the saved fills array). */
+export const partCount = (p: FreePicture) => (p.bitmap ? p.bitmap.regions.length : p.shapes.length);
 
 export const CANVAS_W = 100;
 export const CANVAS_H = 120;
@@ -295,6 +302,7 @@ const QURAN: Shape[] = [
 ];
 
 export const FREE_PICTURES: FreePicture[] = [
+  { id: 'alhamdulillah', title: 'Əlhəmdulillah', emoji: '🤲', shapes: [], bitmap: alhamdulillah },
   { id: 'mosque', title: 'Məscid', emoji: '🕌', shapes: MOSQUE },
   { id: 'kaaba', title: 'Kəbə', emoji: '🕋', shapes: KAABA },
   { id: 'night', title: 'Ay və ulduzlar', emoji: '🌙', shapes: NIGHT },

@@ -1,15 +1,16 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BLANK, ShapeCanvas } from '@/components/coloring/shape-canvas';
+import { PictureCanvas, pictureRatio } from '@/components/coloring/picture-canvas';
+import { BLANK } from '@/components/coloring/shape-canvas';
 import { GameTopBar } from '@/components/game-top-bar';
 import { ModalCard } from '@/components/modal-card';
 import { BigButton } from '@/components/big-button';
 import { Screen } from '@/components/screen';
-import { CANVAS_H, CANVAS_W, FREE_PALETTE, FREE_PICTURES } from '@/data/coloring-pictures';
+import { FREE_PALETTE, FREE_PICTURES, partCount } from '@/data/coloring-pictures';
 import { loadFills, saveFills } from '@/lib/coloring-store';
 import { playSound, vibrate } from '@/lib/sound';
 import { colors, fonts } from '@/theme';
@@ -31,8 +32,10 @@ export default function FreeColoring() {
   }, [pic.id]);
 
   // Fit the picture in both width and height (top bar, palette and buttons ≈ 300).
-  const availH = height - insets.top - insets.bottom - 300;
-  const canvasW = Math.floor(Math.min(Math.min(width, 520) - 32, (availH * CANVAS_W) / CANVAS_H));
+  const availH = height - insets.top - insets.bottom - 310;
+  const ratio = pictureRatio(pic);
+  const canvasW = Math.floor(Math.min(Math.min(width, 520) - 32, availH / ratio));
+  const [zoom, setZoom] = useState(1);
   const swatch = Math.min(40, Math.floor((Math.min(width, 520) - 32 - 8 * 8) / 9));
 
   const apply = (next: string[]) => {
@@ -44,7 +47,7 @@ export default function FreeColoring() {
   const fill = (i: number) => {
     if ((fills[i] ?? BLANK) === color) return;
     const next = [...fills];
-    while (next.length < pic.shapes.length) next.push(BLANK);
+    while (next.length < partCount(pic)) next.push(BLANK);
     next[i] = color;
     playSound('tap');
     vibrate('light');
@@ -63,7 +66,18 @@ export default function FreeColoring() {
   return (
     <Screen scroll={false}>
       <GameTopBar title={pic.title} />
-      <ShapeCanvas shapes={pic.shapes} fills={fills} width={canvasW} onFill={fill} />
+      {zoom === 1 ? (
+        <PictureCanvas pic={pic} fills={fills} width={canvasW} onFill={fill} />
+      ) : (
+        // Zoomed in: scroll around the bigger picture in a box of the normal size.
+        <View style={[styles.zoomBox, { width: canvasW + 6, height: canvasW * ratio + 6 }]}>
+          <ScrollView nestedScrollEnabled contentContainerStyle={styles.zoomContent}>
+            <ScrollView horizontal nestedScrollEnabled>
+              <PictureCanvas pic={pic} fills={fills} width={canvasW * zoom} onFill={fill} />
+            </ScrollView>
+          </ScrollView>
+        </View>
+      )}
 
       <View style={styles.palette}>
         {FREE_PALETTE.map((c) => (
@@ -93,6 +107,17 @@ export default function FreeColoring() {
           style={({ pressed }) => [styles.action, !history.length && styles.disabled, pressed && styles.pressed]}>
           <Text style={styles.actionText}>↩️ Geri al</Text>
         </Pressable>
+        {pic.bitmap ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              playSound('tap');
+              setZoom((z) => (z === 1 ? 2 : 1));
+            }}
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
+            <Text style={styles.actionText}>{zoom === 1 ? '🔍 Böyüt' : '🔍 Kiçilt'}</Text>
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           onPress={() => setAskClear(true)}
@@ -122,16 +147,25 @@ const styles = StyleSheet.create({
   swatch: { borderWidth: 3, borderColor: '#fff' },
   white: { borderColor: '#D9D3EE' },
   swatchOn: { borderColor: colors.text, transform: [{ scale: 1.18 }] },
-  actions: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  zoomBox: {
+    alignSelf: 'center',
+    borderRadius: 18,
+    borderWidth: 3,
+    borderColor: '#3A3550',
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  zoomContent: { flexGrow: 0 },
   action: {
     backgroundColor: colors.card,
     borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderWidth: 3,
     borderColor: '#E9E3FF',
   },
-  actionText: { fontSize: 17, fontFamily: fonts.bold, color: colors.text },
+  actionText: { fontSize: 16, fontFamily: fonts.bold, color: colors.text },
   disabled: { opacity: 0.4 },
   pressed: { transform: [{ scale: 0.95 }] },
   ask: { fontSize: 17, fontFamily: fonts.bold, color: colors.text, textAlign: 'center' },
