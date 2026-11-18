@@ -383,12 +383,12 @@ export default function BalloonsScreen() {
           Səviyyə {level} keçildi! Xal: {score}
         </Text>
         <BigButton label="➡️ Növbəti səviyyə" color={colors.correct} onPress={() => start(level + 1)} />
-        <BigButton label="🏠 Oyunlara qayıt" color="#FF7A59" onPress={() => router.dismissTo('/children')} />
+        <BigButton label="🏠 Oyunlara qayıt" color="#FF7A59" onPress={() => router.dismissTo('/')} />
       </ModalCard>
       <ModalCard visible={result === 'lost'} icon="😮" title="Şarlar aşağı çatdı!">
         <Text style={styles.resultText}>Yenidən cəhd et — hər dəfə yeni şarlar düzülür.</Text>
         <BigButton label="🔁 Yenidən oyna" color={colors.correct} onPress={() => start(level)} />
-        <BigButton label="🏠 Oyunlara qayıt" color="#FF7A59" onPress={() => router.dismissTo('/children')} />
+        <BigButton label="🏠 Oyunlara qayıt" color="#FF7A59" onPress={() => router.dismissTo('/')} />
       </ModalCard>
     </Screen>
   );

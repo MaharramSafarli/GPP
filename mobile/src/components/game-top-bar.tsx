@@ -29,7 +29,7 @@ export function GameTopBar({ seconds, title }: { seconds?: number; title: string
           onPress={() => {
             stopMusic();
             stopSpeaking();
-            router.dismissTo('/children');
+            router.dismissTo('/');
           }}
         />
         {seconds !== undefined ? (

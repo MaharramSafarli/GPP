@@ -74,7 +74,7 @@ export const SECTIONS: Section[] = [
       {
         id: 'coloring',
         title: 'Şəkli rənglə',
-        description: 'Rəqəmlə və ya sərbəst rənglə: məscidlər, Kəbə, təbiət...',
+        description: 'Rəngini seç və şəkli öz zövqünə görə rənglə',
         emoji: '🎨',
         color: '#FF5FA2',
         href: '/children/coloring',
@@ -90,3 +90,6 @@ export const SECTIONS: Section[] = [
     ],
   },
 ];
+
+/** All games, shown directly on the home screen. */
+export const GAMES: Game[] = SECTIONS.flatMap((s) => s.games);

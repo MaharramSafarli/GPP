@@ -3,26 +3,26 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/screen';
 import { Tile } from '@/components/tile';
-import { SECTIONS } from '@/data/catalog';
+import { GAMES } from '@/data/catalog';
 import { colors, fonts } from '@/theme';
 
+/** Home: the games list straight away (no section step). */
 export default function HomeScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
         <Text style={styles.wave}>👋</Text>
         <Text style={styles.heading}>Salam!</Text>
-        <Text style={styles.sub}>Bölməni seç və oynamağa başla</Text>
+        <Text style={styles.sub}>Oyunu seç və oynamağa başla</Text>
       </View>
-      {SECTIONS.map((section) => (
+      {GAMES.map((game) => (
         <Tile
-          key={section.id}
-          emoji={section.emoji}
-          title={section.title}
-          description={section.href ? section.description : 'Tezliklə'}
-          color={section.color}
-          disabled={!section.href}
-          onPress={() => section.href && router.push(section.href)}
+          key={game.id}
+          emoji={game.emoji}
+          title={game.title}
+          description={game.description}
+          color={game.color}
+          onPress={() => router.push(game.href)}
         />
       ))}
     </Screen>
@@ -30,8 +30,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', marginVertical: 8 },
-  wave: { fontSize: 56 },
+  hero: { alignItems: 'center', marginVertical: 4 },
+  wave: { fontSize: 52 },
   heading: { fontSize: 40, fontFamily: fonts.display, color: colors.text, lineHeight: 50 },
   sub: { fontSize: 17, fontFamily: fonts.body, color: colors.muted },
 });

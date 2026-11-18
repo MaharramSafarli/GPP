@@ -176,7 +176,7 @@ export default function ExplainItPlay() {
 
   const goHome = () => {
     stopMusic();
-    router.dismissTo('/children');
+    router.dismissTo('/');
   };
 
   const category = CATEGORIES.find((c) => c.id === card.category)!;

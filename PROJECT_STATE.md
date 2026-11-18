@@ -90,7 +90,8 @@ Other files in `mobile/`: `firebase.json` + `firestore.rules` (rules source of t
 - Emoji instead of illustrations — no image assets/licensing; could be replaced with real art later.
 
 ## 8. Where we left off / next steps
-0. Coloring + balloon games added (OTA, no new APK). Owner to test them on the phone.
+0. Coloring + balloon games added (OTA). 2026-11-18: owner asked to keep only their uploaded drawing in coloring — the color-by-number masjids and the 8 shape pictures were removed (restore from git commit 476a756 if wanted; the shape renderer is kept). The app now opens straight on the games list (`app/index.tsx` uses `GAMES` from catalog; `/children` redirects to `/`; home buttons go to `/`). Routes still live under `children/`.
+   - Owner wants **iOS too** and **store publishing**: needs Apple Developer Program ($99/yr) and Google Play Console ($25 once); then `eas build --profile production` + `eas submit`. Not started.
 1. **⚠️ Waiting on the owner: "resolution / overflow issues"** on their phone in the 1.1.0 games. They said they'll send screenshots; fix them first. (Likely suspects: fixed font sizes on small screens, crossword grid/keyboard width, İzah et! card on short screens, word-search grid height, team names in scoreboard.)
 2. Owner should test **Bilik Çarxı online** with a friend (friend installs the same APK).
 3. Ideas offered, not yet requested: "your turn" **push notifications** (needs expo-notifications + Cloud Function + new APK), **duel/challenge mode** in Bilik Çarxı, treat leaving mid-question as a wrong answer, proper accounts, real voice recordings / illustrations, more sections.

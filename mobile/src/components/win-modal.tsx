@@ -27,7 +27,7 @@ export function WinModal({ visible, stars, seconds, extra, onPlayAgain }: Props)
         {extra ? <Text style={styles.extra}>{extra}</Text> : null}
       </View>
       <BigButton label="🔁 Yenə oyna" color={colors.correct} onPress={onPlayAgain} />
-      <BigButton label="🏠 Oyunlara qayıt" color="#FF7A59" onPress={() => router.dismissTo('/children')} />
+      <BigButton label="🏠 Oyunlara qayıt" color="#FF7A59" onPress={() => router.dismissTo('/')} />
     </ModalCard>
   );
 }

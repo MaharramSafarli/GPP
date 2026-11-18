@@ -38,7 +38,7 @@ export default function RootLayout() {
           headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: colors.header },
         }}>
-        <Stack.Screen name="index" options={{ title: 'Ana səhifə' }} />
+        <Stack.Screen name="index" options={{ title: 'Oyunlar' }} />
         <Stack.Screen name="children/index" options={{ title: 'Uşaqlar' }} />
         <Stack.Screen name="children/explain-it/index" options={{ title: 'İzah et!' }} />
         <Stack.Screen name="children/explain-it/setup" options={{ title: 'Yeni oyun' }} />
@@ -48,7 +48,6 @@ export default function RootLayout() {
         <Stack.Screen name="children/crossword/index" options={hidden} />
         <Stack.Screen name="children/word-search/index" options={hidden} />
         <Stack.Screen name="children/coloring/index" options={{ title: 'Şəkli rənglə' }} />
-        <Stack.Screen name="children/coloring/number/[id]" options={hidden} />
         <Stack.Screen name="children/coloring/free/[id]" options={hidden} />
         <Stack.Screen name="children/balloons/index" options={hidden} />
         <Stack.Screen name="children/quiz/index" options={{ title: 'Bilik Çarxı' }} />
