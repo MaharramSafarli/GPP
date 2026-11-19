@@ -72,6 +72,14 @@ export const SECTIONS: Section[] = [
         href: '/children/word-search',
       },
       {
+        id: 'word-guess',
+        title: 'Söz ustası',
+        description: 'İpucunu oxu, hərfləri yaz və sözü tap! 11 söz, hər biri 1 dəqiqə',
+        emoji: '🔤',
+        color: '#0FA3B1',
+        href: '/children/word-guess',
+      },
+      {
         id: 'coloring',
         title: 'Şəkli rənglə',
         description: 'Rəngini seç və şəkli öz zövqünə görə rənglə',
