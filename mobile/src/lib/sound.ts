@@ -145,6 +145,7 @@ export function sayVoice(key: string, fallbackText: string) {
     let p = voicePlayers.get(key);
     if (!p) {
       p = createAudioPlayer(source);
+      p.loop = false;
       voicePlayers.set(key, p);
     }
     voicePlayer = p;

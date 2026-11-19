@@ -22,9 +22,15 @@ function Player({ source, color, label }: { source: AudioSource; color: string; 
   const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
+    player.loop = false;
+  }, [player]);
+
+  // Play once: when the recording ends, just stop (rewinding here would make
+  // Android start it again). It is rewound when the button is tapped.
+  useEffect(() => {
     if (status.didJustFinish) {
       try {
-        player.seekTo(0);
+        player.pause();
       } catch {}
     }
   }, [status.didJustFinish, player]);
@@ -34,7 +40,7 @@ function Player({ source, color, label }: { source: AudioSource; color: string; 
       stopSpeaking();
       if (status.playing) player.pause();
       else {
-        player.seekTo(0);
+        player.seekTo(0).catch(() => {});
         player.play();
       }
     } catch {
