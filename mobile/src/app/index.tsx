@@ -13,8 +13,16 @@ export default function HomeScreen() {
       <View style={styles.hero}>
         <Text style={styles.wave}>👋</Text>
         <Text style={styles.heading}>Salam!</Text>
-        <Text style={styles.sub}>Oyunu seç və oynamağa başla</Text>
+        <Text style={styles.sub}>Dua öyrən və ya oyun seç</Text>
       </View>
+      <Tile
+        emoji="🤲"
+        title="Dualar"
+        description="Gündəlik dualar: ərəbcə, oxunuşu və mənası ilə"
+        color="#2E9E6B"
+        onPress={() => router.push('/duas')}
+      />
+      <Text style={styles.section}>🎮 Oyunlar</Text>
       {GAMES.map((game) => (
         <Tile
           key={game.id}
@@ -34,4 +42,5 @@ const styles = StyleSheet.create({
   wave: { fontSize: 52 },
   heading: { fontSize: 40, fontFamily: fonts.display, color: colors.text, lineHeight: 50 },
   sub: { fontSize: 17, fontFamily: fonts.body, color: colors.muted },
+  section: { fontSize: 26, fontFamily: fonts.display, color: colors.text, lineHeight: 34, marginBottom: -4 },
 });

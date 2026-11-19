@@ -39,6 +39,8 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.header },
         }}>
         <Stack.Screen name="index" options={{ title: 'Oyunlar' }} />
+        <Stack.Screen name="duas/index" options={{ title: 'Dualar' }} />
+        <Stack.Screen name="duas/[id]" options={{ title: 'Dua' }} />
         <Stack.Screen name="children/index" options={{ title: 'Uşaqlar' }} />
         <Stack.Screen name="children/explain-it/index" options={{ title: 'İzah et!' }} />
         <Stack.Screen name="children/explain-it/setup" options={{ title: 'Yeni oyun' }} />
