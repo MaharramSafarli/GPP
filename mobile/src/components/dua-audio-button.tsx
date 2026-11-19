@@ -6,18 +6,18 @@ import { stopSpeaking } from '@/lib/sound';
 import { colors, fonts } from '@/theme';
 
 /** Play / pause for one dua recording, or a "coming soon" note when there is none yet. */
-export function DuaAudioButton({ source, color }: { source?: AudioSource; color: string }) {
+export function DuaAudioButton({ source, color, label }: { source?: AudioSource; color: string; label: string }) {
   if (!source) {
     return (
       <View style={[styles.button, styles.soon]}>
-        <Text style={styles.soonText}>🔈 Səs tezliklə əlavə olunacaq</Text>
+        <Text style={styles.soonText}>🔈 Səs tezliklə</Text>
       </View>
     );
   }
-  return <Player source={source} color={color} />;
+  return <Player source={source} color={color} label={label} />;
 }
 
-function Player({ source, color }: { source: AudioSource; color: string }) {
+function Player({ source, color, label }: { source: AudioSource; color: string; label: string }) {
   const player = useAudioPlayer(source);
   const status = useAudioPlayerStatus(player);
 
@@ -33,7 +33,10 @@ function Player({ source, color }: { source: AudioSource; color: string }) {
     try {
       stopSpeaking();
       if (status.playing) player.pause();
-      else player.play();
+      else {
+        player.seekTo(0);
+        player.play();
+      }
     } catch {
       // Audio is optional; never crash.
     }
@@ -44,7 +47,7 @@ function Player({ source, color }: { source: AudioSource; color: string }) {
       accessibilityRole="button"
       onPress={toggle}
       style={({ pressed }) => [styles.button, { backgroundColor: color }, pressed && { transform: [{ scale: 0.96 }] }]}>
-      <Text style={styles.text}>{status.playing ? '⏸ Dayandır' : '▶️ Dinlə'}</Text>
+      <Text style={styles.text}>{status.playing ? '⏸ Dayandır' : `▶️ ${label}`}</Text>
     </Pressable>
   );
 }
@@ -53,10 +56,10 @@ const styles = StyleSheet.create({
   button: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     paddingVertical: 9,
   },
-  text: { fontSize: 17, fontFamily: fonts.display, color: '#fff' },
+  text: { fontSize: 16, fontFamily: fonts.display, color: '#fff' },
   soon: { backgroundColor: '#F1EEFB' },
   soonText: { fontSize: 14, fontFamily: fonts.bold, color: colors.muted },
 });

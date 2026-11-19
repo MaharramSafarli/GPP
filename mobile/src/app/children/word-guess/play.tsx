@@ -25,7 +25,7 @@ import {
 } from '@/games/word-guess/engine';
 import { azUpper } from '@/lib/az';
 import { useSettings } from '@/lib/settings';
-import { playSound, speak, stopSpeaking, vibrate } from '@/lib/sound';
+import { playSound, sayVoice, stopSpeaking, vibrate } from '@/lib/sound';
 import { loadJSON, saveJSON } from '@/lib/storage';
 import { colors, fonts } from '@/theme';
 
@@ -260,7 +260,7 @@ export default function WordGuessPlay() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Sualı oxu"
-          onPress={() => speak(q.clue)}
+          onPress={() => sayVoice(`wg:${q.word}`, q.clue)}
           style={({ pressed }) => [styles.speak, pressed && { transform: [{ scale: 0.92 }] }]}>
           <Text style={styles.speakIcon}>🔈</Text>
         </Pressable>

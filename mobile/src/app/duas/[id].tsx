@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { DuaAudioButton } from '@/components/dua-audio-button';
 import { DuaScene } from '@/components/dua-scene';
 import { Screen } from '@/components/screen';
-import { DUA_AUDIO } from '@/data/dua-audio';
+import { VOICE } from '@/data/voice';
 import { DUAS } from '@/data/duas';
 import { playSound } from '@/lib/sound';
 import { colors, fonts } from '@/theme';
@@ -41,7 +41,10 @@ export default function DuaPage() {
           <Text style={styles.arabic}>{p.arabic}</Text>
           <Text style={styles.translit}>{p.translit}</Text>
           <Text style={styles.meaning}>{p.meaning}</Text>
-          <DuaAudioButton source={DUA_AUDIO[`${dua.id}-${i}`]} color={dua.color} />
+          <View style={styles.audioRow}>
+            <DuaAudioButton source={VOICE[`dua:${dua.id}:${i}:ar`]} color={dua.color} label="Ərəbcə dinlə" />
+            <DuaAudioButton source={VOICE[`dua:${dua.id}:${i}:az`]} color={colors.primary} label="Mənasını dinlə" />
+          </View>
         </View>
       ))}
 
@@ -87,6 +90,7 @@ const styles = StyleSheet.create({
   meaning: { fontSize: 18, fontFamily: fonts.bold, color: colors.text, lineHeight: 25 },
   after: { fontSize: 15, fontFamily: fonts.body, color: colors.text, lineHeight: 21 },
   source: { fontSize: 13, fontFamily: fonts.body, color: colors.muted, lineHeight: 18 },
+  audioRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   nav: { flexDirection: 'row', gap: 10 },
   navBtn: { flex: 1, backgroundColor: colors.card, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 14 },
   navNext: {},

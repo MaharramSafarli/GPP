@@ -2,6 +2,8 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 
+import { VOICE } from '@/data/voice';
+
 const SOURCES = {
   tap: require('../../assets/sounds/tap.wav'),
   flip: require('../../assets/sounds/flip.wav'),
@@ -113,8 +115,42 @@ export async function speak(text: string) {
   } catch {}
 }
 
+let voicePlayer: AudioPlayer | null = null;
+const voicePlayers = new Map<string, AudioPlayer>();
+
+/** Stops the phone voice and any recording that is playing. */
 export function stopSpeaking() {
   try {
     Speech.stop();
   } catch {}
+  try {
+    voicePlayer?.pause();
+  } catch {}
+}
+
+/**
+ * Plays the Jawad recording for `key` (see src/data/voice.ts); if there is
+ * no recording yet, reads `fallbackText` with the phone's voice instead.
+ */
+export function sayVoice(key: string, fallbackText: string) {
+  if (!flags.sfx) return;
+  const source = VOICE[key];
+  if (!source) {
+    speak(fallbackText);
+    return;
+  }
+  stopSpeaking();
+  try {
+    configure();
+    let p = voicePlayers.get(key);
+    if (!p) {
+      p = createAudioPlayer(source);
+      voicePlayers.set(key, p);
+    }
+    voicePlayer = p;
+    p.seekTo(0).catch(() => {});
+    p.play();
+  } catch {
+    speak(fallbackText);
+  }
 }

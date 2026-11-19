@@ -11,7 +11,7 @@ import { Screen } from '@/components/screen';
 import { WinModal, starsFor } from '@/components/win-modal';
 import { MEMORY_LEVELS, type MemoryItem } from '@/data/memory-levels';
 import { shuffle } from '@/games/explain-it/shuffle';
-import { playSound, speak, stopSpeaking, vibrate } from '@/lib/sound';
+import { playSound, sayVoice, stopSpeaking, vibrate } from '@/lib/sound';
 import { colors, fonts } from '@/theme';
 
 type Tile = { key: string; item: MemoryItem };
@@ -28,26 +28,37 @@ export default function MemoryLevelScreen() {
   useEffect(() => () => stopSpeaking(), []);
 
   return phase === 'learn' ? (
-    <Learn items={level.items} title={level.subtitle} onDone={() => setPhase('play')} />
+    <Learn levelId={level.id} items={level.items} title={level.subtitle} onDone={() => setPhase('play')} />
   ) : (
-    <Play items={level.items} title={level.subtitle} />
+    <Play levelId={level.id} items={level.items} title={level.subtitle} />
   );
 }
 
 /** Step 1: reveal each card one by one and hear what it means. */
-function Learn({ items, title, onDone }: { items: MemoryItem[]; title: string; onDone: () => void }) {
+function Learn({
+  levelId,
+  items,
+  title,
+  onDone,
+}: {
+  levelId: string;
+  items: MemoryItem[];
+  title: string;
+  onDone: () => void;
+}) {
+  const sayItem = (it: MemoryItem) => sayVoice(`mem:${levelId}:${it.id}`, `${it.name}. ${it.info}`);
   const [revealed, setRevealed] = useState(0);
   const done = revealed >= items.length;
 
   const reveal = (i: number) => {
     if (i !== revealed) {
-      if (i < revealed) speak(`${items[i].name}. ${items[i].info}`);
+      if (i < revealed) sayItem(items[i]);
       return;
     }
     playSound('flip');
     vibrate('light');
     setRevealed(i + 1);
-    speak(`${items[i].name}. ${items[i].info}`);
+    sayItem(items[i]);
   };
 
   return (
@@ -93,7 +104,7 @@ function Learn({ items, title, onDone }: { items: MemoryItem[]; title: string; o
 }
 
 /** Step 2: find the matching pairs. */
-function Play({ items, title }: { items: MemoryItem[]; title: string }) {
+function Play({ levelId, items, title }: { levelId: string; items: MemoryItem[]; title: string }) {
   const { width, height } = useWindowDimensions();
   const [tiles, setTiles] = useState(() => makeTiles(items));
   const [open, setOpen] = useState<number[]>([]);
@@ -133,7 +144,7 @@ function Play({ items, title }: { items: MemoryItem[]; title: string }) {
       playSound('match');
       vibrate('success');
       setConfetti((c) => c + 1);
-      speak(tiles[a].item.name);
+      sayVoice(`memname:${levelId}:${tiles[a].item.id}`, tiles[a].item.name);
       if (nowMatched.length === items.length) {
         setTimeout(() => {
           setWon(true);
