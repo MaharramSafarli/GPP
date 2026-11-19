@@ -1,4 +1,4 @@
-import { useKeepAwake } from 'expo-keep-awake';
+import { useKeepAwake } from '@/lib/keep-awake';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 

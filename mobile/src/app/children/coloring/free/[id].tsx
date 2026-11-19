@@ -1,4 +1,4 @@
-import { useKeepAwake } from 'expo-keep-awake';
+import { useKeepAwake } from '@/lib/keep-awake';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
