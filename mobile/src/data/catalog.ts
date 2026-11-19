@@ -80,6 +80,14 @@ export const SECTIONS: Section[] = [
         href: '/children/word-guess',
       },
       {
+        id: 'letter-ring',
+        title: 'Hərf dairəsi',
+        description: 'A-dan Z-yə hər hərfə bir sual. 5 dəqiqədə neçəsini taparsan?',
+        emoji: '🔠',
+        color: '#E8743B',
+        href: '/children/letter-ring',
+      },
+      {
         id: 'coloring',
         title: 'Şəkli rənglə',
         description: 'Rəngini seç və şəkli öz zövqünə görə rənglə',
