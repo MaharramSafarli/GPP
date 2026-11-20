@@ -1,7 +1,7 @@
 import { useKeepAwake } from '@/lib/keep-awake';
 import { router } from 'expo-router';
 import { memo, useEffect, useRef, useState } from 'react';
-import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AzKeyboard } from '@/components/az-keyboard';
@@ -108,6 +108,7 @@ const Ring = memo(function Ring({
 export default function LetterRingPlay() {
   useKeepAwake();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const { settings, update } = useSettings();
 
   const [slots, setSlots] = useState<Slot[]>(() => makeRing());
@@ -299,34 +300,48 @@ export default function LetterRingPlay() {
       </View>
 
       <View style={styles.ringBox} onLayout={(e) => setRingBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-        {ringSize > 120 ? <Ring slots={slots} current={current} size={ringSize} flash={feedback?.status ?? null} /> : null}
+        {ringSize > 90 ? <Ring slots={slots} current={current} size={ringSize} flash={feedback?.status ?? null} /> : null}
       </View>
 
-      {feedback && feedback.status !== 'passed' ? (
-        <View style={[styles.banner, feedback.status === 'correct' ? styles.bannerOk : styles.bannerBad]}>
-          <Text style={styles.bannerText}>
-            {feedback.status === 'correct' ? '✅ Düzdür!' : '❌ Səhv!'} Cavab: {azUpper(feedback.answer)}
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.answer}>
-          <Text style={[styles.answerText, !typed && styles.placeholder]} numberOfLines={1}>
-            {typed || 'Cavabını yaz…'}
-          </Text>
-        </View>
-      )}
+      <View style={styles.answerRow}>
+        {feedback && feedback.status !== 'passed' ? (
+          <View style={[styles.banner, feedback.status === 'correct' ? styles.bannerOk : styles.bannerBad]}>
+            <Text style={styles.bannerText} numberOfLines={2}>
+              {feedback.status === 'correct' ? '✅ Düzdür!' : '❌ Səhv!'} Cavab: {azUpper(feedback.answer)}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.answer}>
+            <Text style={[styles.answerText, !typed && styles.placeholder]} numberOfLines={1}>
+              {typed || 'Cavabını yaz…'}
+            </Text>
+          </View>
+        )}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pas"
+          disabled={!!feedback}
+          onPress={() => resolve('passed')}
+          style={({ pressed }) => [styles.smallBtn, { backgroundColor: colors.primary }, !!feedback && styles.dim, pressed && styles.pressedBtn]}>
+          <Text style={styles.smallBtnText}>⏭️ Pas</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Göndər"
+          disabled={!typed || !!feedback}
+          onPress={submit}
+          style={({ pressed }) => [styles.smallBtn, { backgroundColor: colors.correct }, (!typed || !!feedback) && styles.dim, pressed && styles.pressedBtn]}>
+          <Text style={styles.smallBtnText}>✔️</Text>
+        </Pressable>
+      </View>
 
       <AzKeyboard
         onKey={(l) => !feedback && setTyped((t) => (t.length < 16 ? t + l : t))}
         onErase={() => setTyped((t) => t.slice(0, -1))}
         color={ACCENT}
         disabled={!!feedback}
+        compact={height < 760}
       />
-
-      <View style={styles.actions}>
-        <BigButton label="⏭️ Pas" color={colors.primary} onPress={() => resolve('passed')} flex disabled={!!feedback} />
-        <BigButton label="✔️ Göndər" color={colors.correct} onPress={submit} flex disabled={!typed || !!feedback} />
-      </View>
 
       <ModalCard visible={askExit} icon="🚪" title="Oyundan çıxırsan?" onRequestClose={() => setAskExit(false)}>
         <Text style={styles.ask}>Bu oyundakı xalların itəcək.</Text>
@@ -409,7 +424,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(45,42,110,0.15)',
   },
   dotText: { fontFamily: fonts.display, color: colors.text },
+  answerRow: { flexDirection: 'row', gap: 6, alignItems: 'stretch' },
+  smallBtn: { borderRadius: 16, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', minWidth: 52 },
+  smallBtnText: { fontSize: 17, fontFamily: fonts.display, color: '#fff' },
+  dim: { opacity: 0.45 },
+  pressedBtn: { transform: [{ scale: 0.95 }] },
   answer: {
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 18,
     borderWidth: 3,
@@ -420,11 +441,10 @@ const styles = StyleSheet.create({
   },
   answerText: { fontSize: 22, fontFamily: fonts.display, color: colors.text, letterSpacing: 2 },
   placeholder: { fontSize: 17, fontFamily: fonts.bold, color: colors.muted, letterSpacing: 0 },
-  banner: { borderRadius: 18, height: 52, justifyContent: 'center', paddingHorizontal: 16 },
+  banner: { flex: 1, borderRadius: 18, height: 52, justifyContent: 'center', paddingHorizontal: 12 },
   bannerOk: { backgroundColor: '#C9F2D6' },
   bannerBad: { backgroundColor: '#FFD3DB' },
-  bannerText: { fontSize: 17, fontFamily: fonts.bold, color: colors.text },
-  actions: { flexDirection: 'row', gap: 10 },
+  bannerText: { fontSize: 15, fontFamily: fonts.bold, color: colors.text, lineHeight: 19 },
   ask: { fontSize: 17, fontFamily: fonts.bold, color: colors.text, textAlign: 'center' },
   finalCard: {
     backgroundColor: colors.card,

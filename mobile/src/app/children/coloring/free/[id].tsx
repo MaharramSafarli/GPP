@@ -32,7 +32,7 @@ export default function FreeColoring() {
   }, [pic.id]);
 
   // Fit the picture in both width and height (top bar, palette and buttons ≈ 300).
-  const availH = height - insets.top - insets.bottom - 310;
+  const availH = height - insets.top - insets.bottom - 320;
   const ratio = pictureRatio(pic);
   const canvasW = Math.floor(Math.min(Math.min(width, 520) - 32, availH / ratio));
   const [zoom, setZoom] = useState(1);
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   swatch: { borderWidth: 3, borderColor: '#fff' },
   white: { borderColor: '#D9D3EE' },
   swatchOn: { borderColor: colors.text, transform: [{ scale: 1.18 }] },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  actions: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
   zoomBox: {
     alignSelf: 'center',
     borderRadius: 18,
@@ -160,12 +160,12 @@ const styles = StyleSheet.create({
   action: {
     backgroundColor: colors.card,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 3,
     borderColor: '#E9E3FF',
   },
-  actionText: { fontSize: 16, fontFamily: fonts.bold, color: colors.text },
+  actionText: { fontSize: 15, fontFamily: fonts.bold, color: colors.text },
   disabled: { opacity: 0.4 },
   pressed: { transform: [{ scale: 0.95 }] },
   ask: { fontSize: 17, fontFamily: fonts.bold, color: colors.text, textAlign: 'center' },

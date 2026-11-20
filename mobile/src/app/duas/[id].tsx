@@ -55,14 +55,14 @@ export default function DuaPage() {
       <View style={styles.nav}>
         {prev ? (
           <Pressable onPress={() => go(prev)} style={({ pressed }) => [styles.navBtn, pressed && styles.pressed]}>
-            <Text style={styles.navText} numberOfLines={1}>‹ {prev.title}</Text>
+            <Text style={styles.navText} numberOfLines={2}>‹ {prev.title}</Text>
           </Pressable>
         ) : (
           <View style={{ flex: 1 }} />
         )}
         {next ? (
           <Pressable onPress={() => go(next)} style={({ pressed }) => [styles.navBtn, styles.navNext, pressed && styles.pressed]}>
-            <Text style={[styles.navText, { textAlign: 'right' }]} numberOfLines={1}>{next.title} ›</Text>
+            <Text style={[styles.navText, { textAlign: 'right' }]} numberOfLines={2}>{next.title} ›</Text>
           </Pressable>
         ) : (
           <View style={{ flex: 1 }} />

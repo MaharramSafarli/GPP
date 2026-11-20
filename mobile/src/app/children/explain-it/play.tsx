@@ -322,7 +322,7 @@ function TeamPill({
         index === 1 && styles.pillRight,
         active && { borderColor: TEAM_COLORS[index], backgroundColor: '#fff' },
       ]}>
-      <Text style={styles.pillName} numberOfLines={1}>
+      <Text style={styles.pillName} numberOfLines={2}>
         {name}
       </Text>
       <View style={[styles.pillScore, { backgroundColor: TEAM_COLORS[index] }]}>
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     paddingLeft: 6,
   },
   pillRight: { flexDirection: 'row-reverse', paddingLeft: 4, paddingRight: 6 },
-  pillName: { flex: 1, fontSize: 14, fontFamily: fonts.bold, color: colors.text, textAlign: 'center' },
+  pillName: { flex: 1, fontSize: 13, lineHeight: 16, fontFamily: fonts.bold, color: colors.text, textAlign: 'center' },
   pillScore: {
     minWidth: 38,
     height: 38,

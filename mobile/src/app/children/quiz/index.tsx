@@ -289,6 +289,8 @@ const styles = StyleSheet.create({
   myAvatar: { fontSize: 40 },
   nameInput: {
     flex: 1,
+    minWidth: 0,
+    width: 0,
     fontSize: 19,
     fontFamily: fonts.bold,
     color: colors.text,

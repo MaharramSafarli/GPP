@@ -3,16 +3,24 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 import { AZ_ALPHABET } from '@/lib/az';
 import { fonts } from '@/theme';
 
-type Props = { onKey: (letter: string) => void; onErase: () => void; color?: string; disabled?: boolean };
+type Props = {
+  onKey: (letter: string) => void;
+  onErase: () => void;
+  color?: string;
+  disabled?: boolean;
+  /** Shorter keys for short screens. */
+  compact?: boolean;
+};
 
 /** On-screen Azerbaijani keyboard (all 32 letters, 3 rows) with a delete key. */
-export function AzKeyboard({ onKey, onErase, color = '#2F6F62', disabled }: Props) {
+export function AzKeyboard({ onKey, onErase, color = '#2F6F62', disabled, compact }: Props) {
+  const keyH = compact ? 36 : 42;
   const { width } = useWindowDimensions();
   const rows = [AZ_ALPHABET.slice(0, 11), AZ_ALPHABET.slice(11, 22), AZ_ALPHABET.slice(22)];
   // 11 keys per row (+ a 1.5× wide delete key on the last row) inside 16px of keyboard padding.
   const keyW = Math.floor((Math.min(width, 520) - 32 - 16 - 10 * 4) / 11.5);
   return (
-    <View style={[styles.keyboard, { backgroundColor: color }, disabled && styles.disabled]}>
+    <View style={[styles.keyboard, { backgroundColor: color }, compact && styles.compact, disabled && styles.disabled]}>
       {rows.map((row, i) => (
         <View key={i} style={styles.row}>
           {row.map((l) => (
@@ -20,7 +28,7 @@ export function AzKeyboard({ onKey, onErase, color = '#2F6F62', disabled }: Prop
               key={l}
               disabled={disabled}
               onPress={() => onKey(l)}
-              style={({ pressed }) => [styles.key, { width: keyW }, pressed && styles.pressed]}>
+              style={({ pressed }) => [styles.key, { width: keyW, height: keyH }, pressed && styles.pressed]}>
               <Text style={styles.text}>{l}</Text>
             </Pressable>
           ))}
@@ -29,7 +37,7 @@ export function AzKeyboard({ onKey, onErase, color = '#2F6F62', disabled }: Prop
               disabled={disabled}
               onPress={onErase}
               accessibilityLabel="Sil"
-              style={({ pressed }) => [styles.key, styles.erase, { width: keyW * 1.5 }, pressed && styles.pressed]}>
+              style={({ pressed }) => [styles.key, styles.erase, { width: keyW * 1.5, height: keyH }, pressed && styles.pressed]}>
               <Text style={styles.text}>⌫</Text>
             </Pressable>
           )}
@@ -41,6 +49,7 @@ export function AzKeyboard({ onKey, onErase, color = '#2F6F62', disabled }: Prop
 
 const styles = StyleSheet.create({
   keyboard: { borderRadius: 18, padding: 8, gap: 6 },
+  compact: { padding: 6, gap: 4 },
   disabled: { opacity: 0.6 },
   row: { flexDirection: 'row', justifyContent: 'center', gap: 4 },
   key: {

@@ -1,8 +1,8 @@
 import { useKeepAwake } from '@/lib/keep-awake';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { PanResponder, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { PanResponder, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BigButton } from '@/components/big-button';
 import { Confetti } from '@/components/confetti';
 import { GameTopBar } from '@/components/game-top-bar';
 import { Screen } from '@/components/screen';
@@ -38,7 +38,8 @@ function lineCells(a: Pos, b: Pos, size: number): Pos[] {
 
 export default function WordSearchScreen() {
   useKeepAwake();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [puzzle, setPuzzle] = useState<WordSearch>(() => generateWordSearch(ISLAMIC_TERMS));
   const [found, setFound] = useState<{ word: string; cells: Pos[]; color: string }[]>([]);
   const [selection, setSelection] = useState<Pos[]>([]);
@@ -53,7 +54,8 @@ export default function WordSearchScreen() {
   const state = useRef({ puzzle, found, pending, won });
   state.current = { puzzle, found, pending, won };
 
-  const gridSize = Math.min(width - 32, 460);
+  // Fit the grid in the width and in the height left over by the top bar, word list and buttons.
+  const gridSize = Math.max(240, Math.min(width - 32, 460, height - insets.top - insets.bottom - 360));
   const cell = (gridSize - 6) / puzzle.size; // 3px border on each side
   const cellRef = useRef(cell);
   cellRef.current = cell;
@@ -192,11 +194,17 @@ export default function WordSearchScreen() {
           );
         })}
       </View>
-      <Text style={styles.progress}>
-        {found.length} / {puzzle.words.length} söz tapıldı
-      </Text>
-
-      <BigButton label="🔄 Yeni oyun" color={colors.primary} onPress={restart} />
+      <View style={styles.footer}>
+        <Text style={styles.progress}>
+          {found.length} / {puzzle.words.length} söz tapıldı
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={restart}
+          style={({ pressed }) => [styles.newGame, pressed && { transform: [{ scale: 0.95 }] }]}>
+          <Text style={styles.newGameText}>🔄 Yeni oyun</Text>
+        </Pressable>
+      </View>
 
       <Confetti burst={confetti} count={won ? 90 : 30} />
       <WinModal
@@ -235,5 +243,8 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 15, fontFamily: fonts.bold, color: colors.text },
   chipDone: { textDecorationLine: 'line-through', color: '#2D6A4F' },
-  progress: { fontSize: 15, fontFamily: fonts.bold, color: colors.muted, textAlign: 'center' },
+  progress: { fontSize: 15, fontFamily: fonts.bold, color: colors.muted },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  newGame: { backgroundColor: colors.primary, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
+  newGameText: { fontSize: 16, fontFamily: fonts.display, color: '#fff' },
 });

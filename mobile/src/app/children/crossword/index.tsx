@@ -143,10 +143,23 @@ export default function CrosswordScreen() {
 
   const hint = () => {
     if (won) return;
-    const cells = wordCells(selected);
-    const target =
-      (cursor && cells.find(({ r, c }) => r === cursor.r && c === cursor.c && entries[r][c] !== puzzle.solution[r][c])) ||
-      cells.find(({ r, c }) => entries[r][c] !== puzzle.solution[r][c]);
+    const wrong = ({ r, c }: { r: number; c: number }) => entries[r][c] !== puzzle.solution[r][c];
+    let cells = wordCells(selected);
+    let target =
+      (cursor && cells.find(({ r, c }) => r === cursor.r && c === cursor.c && wrong({ r, c }))) || cells.find(wrong);
+    if (!target) {
+      // The selected word is already complete: move on to the next unfinished word.
+      const n = puzzle.words.length;
+      for (let k = 1; k <= n && !target; k++) {
+        const i = (wordIdx + k) % n;
+        cells = wordCells(puzzle.words[i]);
+        target = cells.find(wrong);
+        if (target) {
+          setWordIdx(i);
+          setCursor(null);
+        }
+      }
+    }
     if (!target) return;
     playSound('correct');
     const next = entries.map((row) => [...row]);
