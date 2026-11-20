@@ -88,6 +88,22 @@ export const SECTIONS: Section[] = [
         href: '/children/letter-ring',
       },
       {
+        id: 'math-stars',
+        title: 'Hesab ulduzları',
+        description: 'Düşən ulduzlardakı misalları həll et! Getdikcə sürətlənir',
+        emoji: '⭐',
+        color: '#3A86FF',
+        href: '/children/math-stars',
+      },
+      {
+        id: 'tile-memory',
+        title: 'Xanaları xatırla',
+        description: 'Yanan xanaları yadda saxla və tap. Hər dəfə daha çox xana!',
+        emoji: '🧠',
+        color: '#8D6E63',
+        href: '/children/tile-memory',
+      },
+      {
         id: 'coloring',
         title: 'Şəkli rənglə',
         description: 'Rəngini seç və şəkli öz zövqünə görə rənglə',
